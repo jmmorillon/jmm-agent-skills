@@ -26,6 +26,8 @@ The installer is symlink-based and idempotent. Two modes:
 - Idempotent: re-adding a known marketplace or re-installing a present plugin returns a benign error that is absorbed (`|| true` / `if…then`), so re-running is safe. Because `set -e` is active, gate the calls with `if [ … ]; then … fi`, never `[ … ] && …` (a false test would exit the script).
 - Only the *list* is version-controlled; the `~/.claude/plugins/` cache is rebuilt from it and must not be committed.
 
+**Sub-agents (`agents/`).** The repo also versions Claude Code sub-agent definitions as flat `.md` files under `agents/` (frontmatter `name`, `description`, `tools`, `model`, `memory`; body is the system prompt — see `agents/code-improver.md`). They are symlinked like skills but differ in two ways: they are **flat files, not directories**, and they are **Claude Code only** (no Copilot layer, no `~/.agents/` hub). `--global` links each into `~/.claude/agents/<name>.md`; `--local` into `<chemin>/.claude/agents/<name>.md`; `--no-agents` skips them. The same generic `link_skill`/`unlink_skill` helpers back both skills and agents (never overwrite a real file or a foreign symlink). To version a sub-agent that already exists as a real file in `~/.claude/agents/`, move it into `agents/` first, then re-run install so the symlink replaces the original.
+
 ## Skill layout
 
 Each skill lives in its own directory under `skills/<skill-slug>/` and ships a `SKILL.md` as its entry point. The frontmatter format used in this repo (see `skills/jmm-obsidian-para-sorter/SKILL.md`):

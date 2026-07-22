@@ -35,6 +35,16 @@ La liste (`superpowers`, `figma`, `frontend-design`, `code-review`, `context7`, 
 - Les plugins étant en scope `user`, ils ne concernent que `--global` — le mode `--local` ne les touche jamais.
 - Seule la *liste* est versionnée ; le cache `~/.claude/plugins/` est reconstruit à partir d'elle et n'a pas à être commité.
 
+### Sous-agents
+
+Le dépôt versionne aussi des définitions de **sous-agents** Claude Code, dans le dossier `agents/` (fichiers `.md` plats). Ils sont symlinkés comme les skills, avec deux différences : ce sont des fichiers (pas des dossiers) et ils ne concernent **que Claude Code** (pas de couche Copilot, pas de hub `~/.agents/`).
+
+- `--global` → `~/.claude/agents/<nom>.md`
+- `--local` → `<projet>/.claude/agents/<nom>.md`
+- `--no-agents` → ne gère pas les sous-agents.
+
+Pour versionner un sous-agent qui existe déjà comme fichier réel dans `~/.claude/agents/`, déplace-le d'abord dans `agents/`, puis relance `install.sh` : le symlink remplace l'original.
+
 ### Installation locale (projet)
 
 Pour rendre une skill disponible uniquement dans un projet (sans pollution globale) :
@@ -67,6 +77,12 @@ Retire uniquement les symlinks créés par ce dépôt. Ne touche jamais à un fi
 | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`jmm-obsidian-para-sorter`](skills/jmm-obsidian-para-sorter/SKILL.md) | Réorganise un lot de 20 notes Obsidian selon la méthode PARA (Projects / Areas / Resources / Archive) : classification, renommage, fusion, archivage, signalement des ambiguïtés. |
 | [`bruno-api-collection`](skills/bruno-api-collection/SKILL.md)         | Crée et maintient une collection d'API Bruno (fichiers `.bru` versionnés dans le dépôt) : scaffolding, ajout/mise à jour de requêtes, synchronisation après changement de routes, rejeu d'appels tiers pour debug. |
+
+## Sous-agents disponibles
+
+| Sous-agent                                          | Description                                                                                                                                          |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`code-improver`](agents/code-improver.md)          | Reviewer *read-only* : scanne les fichiers et propose des améliorations (lisibilité, performance, bonnes pratiques) avec code avant/après. Ne modifie jamais de fichiers. |
 
 ## Structure d'une skill
 

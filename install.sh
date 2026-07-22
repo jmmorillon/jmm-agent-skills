@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_SRC="$SCRIPT_DIR/skills"
+AGENTS_SRC="$SCRIPT_DIR/agents"
 
 # Plugins tiers à (dé)installer en mode --global. Tous proviennent du
 # marketplace officiel Anthropic. C'est le bootstrap « nouvelle machine » :
@@ -38,8 +39,14 @@ Installe (ou désinstalle) les skills de ce dépôt par symlinks.
   --uninstall           Retire les symlinks créés par ce dépôt. À combiner
                         avec --global ou --local [chemin].
   --no-plugins          En mode --global, n'installe (ni ne désinstalle) pas les
-                        plugins tiers ; seuls les symlinks de skills sont gérés.
+                        plugins tiers ; seuls skills et sous-agents sont gérés.
+  --no-agents           Ne gère pas les sous-agents (dossier agents/) ; seuls
+                        les skills (et, en --global, les plugins) sont gérés.
   -h, --help            Affiche cette aide.
+
+Les sous-agents du dossier agents/ (fichiers .md, Claude Code uniquement) sont
+symlinkés vers ~/.claude/agents (--global) ou <chemin>/.claude/agents (--local),
+sauf avec --no-agents.
 
 En mode --global, installe aussi les plugins tiers listés dans ce script
 (superpowers, figma, …) depuis le marketplace $PLUGIN_MARKETPLACE, via le CLI
@@ -55,6 +62,7 @@ MODE=""
 ACTION="install"
 LOCAL_PATH=""
 INCLUDE_PLUGINS="yes"
+INCLUDE_AGENTS="yes"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -78,6 +86,10 @@ while [ $# -gt 0 ]; do
       ;;
     --no-plugins)
       INCLUDE_PLUGINS="no"
+      shift
+      ;;
+    --no-agents)
+      INCLUDE_AGENTS="no"
       shift
       ;;
     -h|--help)
@@ -169,6 +181,32 @@ uninstall_skills_from() {
   done
 }
 
+# Sous-agents : fichiers .md plats (pas de dossier), Claude Code uniquement.
+# Symlink direct vers la source absolue, comme le hub des skills.
+install_agents_into() {
+  local dir="$1"
+  [ -d "$AGENTS_SRC" ] || return 0
+  mkdir -p "$dir"
+  local src name
+  for src in "$AGENTS_SRC"/*.md; do
+    [ -e "$src" ] || continue
+    name="$(basename "$src")"
+    link_skill "$dir/$name" "$src"
+  done
+}
+
+uninstall_agents_from() {
+  local dir="$1"
+  [ -d "$dir" ] || return 0
+  [ -d "$AGENTS_SRC" ] || return 0
+  local src name
+  for src in "$AGENTS_SRC"/*.md; do
+    [ -e "$src" ] || continue
+    name="$(basename "$src")"
+    unlink_skill "$dir/$name" "$src"
+  done
+}
+
 # Expose chaque skill du hub à un outil : ~/.<tool>/skills/<name> → ../../.agents/skills/<name>.
 # Cible relative pour matcher la convention déjà en place dans ce setup.
 expose_hub_to_tool() {
@@ -246,6 +284,7 @@ case "$MODE:$ACTION" in
     install_skills_into "$HUB"
     expose_hub_to_tool claude
     expose_hub_to_tool copilot
+    if [ "$INCLUDE_AGENTS" = "yes" ]; then install_agents_into "$HOME/.claude/agents"; fi
     if [ "$INCLUDE_PLUGINS" = "yes" ]; then install_plugins; fi
     ;;
 
@@ -254,16 +293,19 @@ case "$MODE:$ACTION" in
     unexpose_hub_from_tool claude
     unexpose_hub_from_tool copilot
     uninstall_skills_from "$HUB"
+    if [ "$INCLUDE_AGENTS" = "yes" ]; then uninstall_agents_from "$HOME/.claude/agents"; fi
     if [ "$INCLUDE_PLUGINS" = "yes" ]; then uninstall_plugins; fi
     ;;
 
   local:install)
     install_skills_into "$LOCAL_PATH/.claude/skills"
     install_skills_into "$LOCAL_PATH/.copilot/skills"
+    if [ "$INCLUDE_AGENTS" = "yes" ]; then install_agents_into "$LOCAL_PATH/.claude/agents"; fi
     ;;
 
   local:uninstall)
     uninstall_skills_from "$LOCAL_PATH/.claude/skills"
     uninstall_skills_from "$LOCAL_PATH/.copilot/skills"
+    if [ "$INCLUDE_AGENTS" = "yes" ]; then uninstall_agents_from "$LOCAL_PATH/.claude/agents"; fi
     ;;
 esac
