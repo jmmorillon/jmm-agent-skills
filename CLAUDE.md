@@ -41,6 +41,8 @@ description: <one-sentence>   # used by Claude to decide when to activate the sk
 
 The body that follows is the prompt loaded into the agent when the skill activates. Sections observed in the existing skill — "Mission", "Contraintes", "Méthode", "Sortie obligatoire", "Règle finale" — are prescriptive and constrain the agent's output format. When editing or adding a skill, keep that prescriptive style: state the role, the hard constraints (limits, what not to do), the procedure, and the required output shape.
 
+A skill may bundle resources next to its `SKILL.md` for progressive disclosure — most commonly a `references/` directory holding detail loaded only when needed (see `skills/project-docs-sync/references/doc-frameworks.md`, read only once a doc-site framework is detected). Keep `SKILL.md` lean and point to the reference file from the body; the resource stays out of context until the skill actually needs it.
+
 ## Conventions
 
 - **Author language is French.** The existing skill is written in French; preserve that voice when editing it. New skills may be French or English, but match the language to the skill's intended audience.

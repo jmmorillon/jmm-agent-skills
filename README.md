@@ -77,6 +77,7 @@ Retire uniquement les symlinks créés par ce dépôt. Ne touche jamais à un fi
 | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`obsidian-para-sorter`](skills/obsidian-para-sorter/SKILL.md)         | Réorganise un lot de 20 notes Obsidian selon la méthode PARA (Projects / Areas / Resources / Archive) : classification, renommage, fusion, archivage, signalement des ambiguïtés. |
 | [`bruno-api-collection`](skills/bruno-api-collection/SKILL.md)         | Crée et maintient une collection d'API Bruno (fichiers `.bru` versionnés dans le dépôt) : scaffolding, ajout/mise à jour de requêtes, synchronisation après changement de routes, rejeu d'appels tiers pour debug. |
+| [`project-docs-sync`](skills/project-docs-sync/SKILL.md)               | Synchronise la documentation « vivante » d'un projet avec son état réel après du travail : instructions agent (CLAUDE.md, AGENTS.md…), README, DEVLOG, BACKLOG et doc de site (VitePress, VuePress, MkDocs, Docusaurus, Starlight…). Mise à jour ciblée, respecte l'existant, ne crée rien sans accord. |
 
 ## Sous-agents disponibles
 
@@ -88,8 +89,11 @@ Retire uniquement les symlinks créés par ce dépôt. Ne touche jamais à un fi
 
 ```text
 skills/<slug>/
-└── SKILL.md
+├── SKILL.md
+└── references/        # optionnel : détails chargés à la demande (progressive disclosure)
 ```
+
+Le `SKILL.md` est le point d'entrée. Une skill peut aussi embarquer un dossier `references/` dont le contenu n'est lu que lorsque c'est nécessaire — voir [`skills/project-docs-sync/`](skills/project-docs-sync/SKILL.md), qui ne charge sa fiche sur les frameworks de doc qu'une fois un site détecté.
 
 Le `SKILL.md` commence par un frontmatter YAML lu par les agents pour décider quand activer la skill :
 
