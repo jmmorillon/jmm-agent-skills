@@ -75,7 +75,7 @@ Retire uniquement les symlinks créés par ce dépôt. Ne touche jamais à un fi
 
 | Skill                                                                  | Description                                                                                                                                                                       |
 | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`jmm-obsidian-para-sorter`](skills/jmm-obsidian-para-sorter/SKILL.md) | Réorganise un lot de 20 notes Obsidian selon la méthode PARA (Projects / Areas / Resources / Archive) : classification, renommage, fusion, archivage, signalement des ambiguïtés. |
+| [`obsidian-para-sorter`](skills/obsidian-para-sorter/SKILL.md)         | Réorganise un lot de 20 notes Obsidian selon la méthode PARA (Projects / Areas / Resources / Archive) : classification, renommage, fusion, archivage, signalement des ambiguïtés. |
 | [`bruno-api-collection`](skills/bruno-api-collection/SKILL.md)         | Crée et maintient une collection d'API Bruno (fichiers `.bru` versionnés dans le dépôt) : scaffolding, ajout/mise à jour de requêtes, synchronisation après changement de routes, rejeu d'appels tiers pour debug. |
 
 ## Sous-agents disponibles
@@ -95,17 +95,17 @@ Le `SKILL.md` commence par un frontmatter YAML lu par les agents pour décider q
 
 ```yaml
 ---
-name: <slug-sans-prefixe-jmm>
+name: <slug>
 description: <une phrase qui décrit quand utiliser la skill>
 ---
 ```
 
-Le corps qui suit est le prompt chargé dans l'agent au moment où la skill s'active. Voir [`skills/jmm-obsidian-para-sorter/SKILL.md`](skills/jmm-obsidian-para-sorter/SKILL.md) pour un exemple de mise en forme (rôle, contraintes, méthode, sortie obligatoire).
+Le corps qui suit est le prompt chargé dans l'agent au moment où la skill s'active. Voir [`skills/obsidian-para-sorter/SKILL.md`](skills/obsidian-para-sorter/SKILL.md) pour un exemple de mise en forme (rôle, contraintes, méthode, sortie obligatoire).
 
 ### Convention de nommage
 
-- Dossier : `jmm-<sujet>-<usage>` (préfixe personnel `jmm-`)
-- `name:` dans le frontmatter : même slug, **sans** le préfixe `jmm-`
+- Dossier : `<sujet>-<usage>` en kebab-case, sans préfixe personnel (ex. `obsidian-para-sorter`, `bruno-api-collection`)
+- `name:` dans le frontmatter : identique au nom du dossier
 
 ## Licence
 

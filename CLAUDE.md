@@ -30,11 +30,11 @@ The installer is symlink-based and idempotent. Two modes:
 
 ## Skill layout
 
-Each skill lives in its own directory under `skills/<skill-slug>/` and ships a `SKILL.md` as its entry point. The frontmatter format used in this repo (see `skills/jmm-obsidian-para-sorter/SKILL.md`):
+Each skill lives in its own directory under `skills/<skill-slug>/` and ships a `SKILL.md` as its entry point. The frontmatter format used in this repo (see `skills/obsidian-para-sorter/SKILL.md`):
 
 ```yaml
 ---
-name: <skill-slug>           # kebab-case, matches the directory name without the personal prefix
+name: <skill-slug>           # kebab-case, matches the directory name
 description: <one-sentence>   # used by Claude to decide when to activate the skill
 ---
 ```
@@ -44,7 +44,7 @@ The body that follows is the prompt loaded into the agent when the skill activat
 ## Conventions
 
 - **Author language is French.** The existing skill is written in French; preserve that voice when editing it. New skills may be French or English, but match the language to the skill's intended audience.
-- **Skill directory naming.** Existing convention prefixes the personal namespace: `jmm-<topic>-<purpose>` (e.g. `jmm-obsidian-para-sorter`). The frontmatter `name:` drops the `jmm-` prefix.
+- **Skill directory naming.** Plain kebab-case `<topic>-<purpose>`, no personal prefix (e.g. `obsidian-para-sorter`, `bruno-api-collection`). The frontmatter `name:` matches the directory name exactly.
 - **Hard limits in the prompt itself.** The existing skill enforces a 20-note batch limit by stating it both in "Contraintes" and re-asserting it in the closing "Règle finale". When a skill has a non-obvious cap or guardrail, repeat it at the end so the agent doesn't drift past it.
 
 ## When adding a new skill
