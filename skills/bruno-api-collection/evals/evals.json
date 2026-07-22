@@ -1,0 +1,23 @@
+{
+  "skill_name": "bruno-api-collection",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This plugin exposes some WordPress REST routes and also calls out to the PulseMsg WhatsApp API. Set up a /bruno folder at the repo root so we can test our own endpoints and replay the outbound calls, with local/staging/prod environments. Keep our access token out of git. The relevant code is in api-routes.php.",
+      "expected_output": "A bruno/ folder with bruno.json, environments (local/staging/prod), exposed/ requests for the webhook (GET+POST) and update-plugin (POST), an upstream/ request for the PulseMsg send-template call, secrets via .env + committed .env.example, and .gitignore updated. No real token committed.",
+      "files": ["files/eval1/api-routes.php"]
+    },
+    {
+      "id": 2,
+      "prompt": "We just added a DELETE /wp-json/whatsapp/v1/contacts/{id} route (needs an x-api-key header). Add it to our existing bruno collection. The new route is in new-route.php and the collection is in bruno/.",
+      "expected_output": "A single new .bru request under bruno/exposed for the DELETE endpoint, with the {id} path param, x-api-key auth pulled from a variable/secret, following the existing conventions. Existing files untouched; no wholesale reorg; a new secret key added to .env.example if needed.",
+      "files": ["files/eval2/bruno", "files/eval2/new-route.php"]
+    },
+    {
+      "id": 3,
+      "prompt": "Scaffold a Bruno collection at the root of this Express repo documenting the API, with dev and prod environments and secrets kept out of git. The app is in index.js.",
+      "expected_output": "A bruno/ folder with bruno.json, dev+prod environments, exposed/ requests for /health, GET/POST/GET-by-id /api/orders (with x-api-key auth), an upstream/ request for the Stripe charge call, secrets via .env + .env.example, .gitignore updated. Non-WordPress: proves the skill generalizes.",
+      "files": ["files/eval3/index.js"]
+    }
+  ]
+}

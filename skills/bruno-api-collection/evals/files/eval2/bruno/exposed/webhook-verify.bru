@@ -1,0 +1,25 @@
+meta {
+  name: Public webhook — verify handshake
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/wp-json/whatsapp/v1/webhook
+  body: none
+  auth: none
+}
+
+query {
+  hub.mode: subscribe
+  hub.verify_token: {{verifyToken}}
+  hub.challenge: 1234
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Meta calls this GET during webhook subscription. Echoes hub.challenge when the token matches.
+}

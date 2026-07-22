@@ -1,0 +1,45 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Repository purpose
+
+This is a personal collection of authored agent skills (Claude Code / Claude Agent SDK skills), published at `github.com/jmmorillon/jmm-agent-skills`. Content is Markdown — no build, lint, or test toolchain.
+
+## Installation script (`install.sh`)
+
+The installer is symlink-based and idempotent. Two modes:
+
+- `./install.sh --global` — per-skill symlinks at three levels:
+  1. `~/.agents/skills/<name>` → `<repo>/skills/<name>` (the hub, absolute target)
+  2. `~/.claude/skills/<name>` → `../../.agents/skills/<name>` (relative target, for portability)
+  3. `~/.copilot/skills/<name>` → `../../.agents/skills/<name>`
+- `./install.sh --local [chemin]` — for project-scoped installs. Creates `<chemin>/.claude/skills/<skill>` and `<chemin>/.copilot/skills/<skill>` as direct symlinks to this repo's skills (default `chemin` = cwd). No hub layer locally.
+- Append `--uninstall` to either mode to remove only the symlinks this repo would have created. Symlinks pointing elsewhere and real files are skipped (never deleted).
+
+**Why per-skill symlinks rather than a single directory-level symlink:** the user's setup already populates `~/.claude/skills/` and `~/.copilot/skills/` with per-skill symlinks pointing into `~/.agents/skills/` (e.g. `ccc`, `find-skills`). A directory-level symlink would clobber those. The relative target form `../../.agents/skills/<name>` is used to match the convention already in place — don't switch it to absolute.
+
+## Skill layout
+
+Each skill lives in its own directory under `skills/<skill-slug>/` and ships a `SKILL.md` as its entry point. The frontmatter format used in this repo (see `skills/jmm-obsidian-para-sorter/SKILL.md`):
+
+```yaml
+---
+name: <skill-slug>           # kebab-case, matches the directory name without the personal prefix
+description: <one-sentence>   # used by Claude to decide when to activate the skill
+---
+```
+
+The body that follows is the prompt loaded into the agent when the skill activates. Sections observed in the existing skill — "Mission", "Contraintes", "Méthode", "Sortie obligatoire", "Règle finale" — are prescriptive and constrain the agent's output format. When editing or adding a skill, keep that prescriptive style: state the role, the hard constraints (limits, what not to do), the procedure, and the required output shape.
+
+## Conventions
+
+- **Author language is French.** The existing skill is written in French; preserve that voice when editing it. New skills may be French or English, but match the language to the skill's intended audience.
+- **Skill directory naming.** Existing convention prefixes the personal namespace: `jmm-<topic>-<purpose>` (e.g. `jmm-obsidian-para-sorter`). The frontmatter `name:` drops the `jmm-` prefix.
+- **Hard limits in the prompt itself.** The existing skill enforces a 20-note batch limit by stating it both in "Contraintes" and re-asserting it in the closing "Règle finale". When a skill has a non-obvious cap or guardrail, repeat it at the end so the agent doesn't drift past it.
+
+## When adding a new skill
+
+1. Create `skills/<slug>/SKILL.md` with the frontmatter above.
+2. There is no central index or registry to update — discovery is by directory listing.
+3. No tests to run; verify by invoking the skill in a Claude Code session and confirming the output matches the "Sortie obligatoire" / required-output section.
