@@ -19,6 +19,13 @@ The installer is symlink-based and idempotent. Two modes:
 
 **Why per-skill symlinks rather than a single directory-level symlink:** the user's setup already populates `~/.claude/skills/` and `~/.copilot/skills/` with per-skill symlinks pointing into `~/.agents/skills/` (e.g. `ccc`, `find-skills`). A directory-level symlink would clobber those. The relative target form `../../.agents/skills/<name>` is used to match the convention already in place — don't switch it to absolute.
 
+**Third-party plugins (`--global` only).** Beyond the personal skills, `--global` also installs a versioned list of third-party Claude Code plugins so the script doubles as a new-machine bootstrap. The list (`THIRD_PARTY_PLUGINS`) and its marketplace (`anthropics/claude-plugins-official`, exposed as `claude-plugins-official`) are declared at the top of `install.sh`; add or remove an entry there. Each is installed with `claude plugin install <name>@claude-plugins-official --scope user` (uninstall via `claude plugin uninstall … --yes`), so plugins are user-scoped and only make sense in `--global` — the `--local` mode never touches them. Notes:
+
+- Requires the `claude` CLI on `PATH`; if absent, plugins are skipped with a warning and the skill symlinks still install.
+- `--no-plugins` limits `--global` to skill symlinks only (no plugin install/uninstall).
+- Idempotent: re-adding a known marketplace or re-installing a present plugin returns a benign error that is absorbed (`|| true` / `if…then`), so re-running is safe. Because `set -e` is active, gate the calls with `if [ … ]; then … fi`, never `[ … ] && …` (a false test would exit the script).
+- Only the *list* is version-controlled; the `~/.claude/plugins/` cache is rebuilt from it and must not be committed.
+
 ## Skill layout
 
 Each skill lives in its own directory under `skills/<skill-slug>/` and ships a `SKILL.md` as its entry point. The frontmatter format used in this repo (see `skills/jmm-obsidian-para-sorter/SKILL.md`):

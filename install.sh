@@ -4,6 +4,24 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_SRC="$SCRIPT_DIR/skills"
 
+# Plugins tiers à (dé)installer en mode --global. Tous proviennent du
+# marketplace officiel Anthropic. C'est le bootstrap « nouvelle machine » :
+# la liste est versionnée ici, le cache ~/.claude/plugins est reconstruit.
+PLUGIN_MARKETPLACE="anthropics/claude-plugins-official"
+PLUGIN_MARKETPLACE_NAME="claude-plugins-official"
+THIRD_PARTY_PLUGINS=(
+  superpowers
+  figma
+  frontend-design
+  code-review
+  context7
+  skill-creator
+  playwright
+  security-guidance
+  atlassian
+  chrome-devtools-mcp
+)
+
 usage() {
   cat <<EOF
 Usage: install.sh (--global | --local [chemin]) [--uninstall]
@@ -19,7 +37,14 @@ Installe (ou désinstalle) les skills de ce dépôt par symlinks.
                         pour limiter une skill à un projet.
   --uninstall           Retire les symlinks créés par ce dépôt. À combiner
                         avec --global ou --local [chemin].
+  --no-plugins          En mode --global, n'installe (ni ne désinstalle) pas les
+                        plugins tiers ; seuls les symlinks de skills sont gérés.
   -h, --help            Affiche cette aide.
+
+En mode --global, installe aussi les plugins tiers listés dans ce script
+(superpowers, figma, …) depuis le marketplace $PLUGIN_MARKETPLACE, via le CLI
+'claude' (scope user). Nécessite 'claude' dans le PATH ; sinon les plugins sont
+ignorés avec un avertissement (les symlinks restent installés).
 
 Idempotent : relancer l'installation est sans effet si tout est déjà en place.
 Sûr : ne supprime jamais un fichier ou un symlink pointant ailleurs.
@@ -29,6 +54,7 @@ EOF
 MODE=""
 ACTION="install"
 LOCAL_PATH=""
+INCLUDE_PLUGINS="yes"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -48,6 +74,10 @@ while [ $# -gt 0 ]; do
       ;;
     --uninstall)
       ACTION="uninstall"
+      shift
+      ;;
+    --no-plugins)
+      INCLUDE_PLUGINS="no"
       shift
       ;;
     -h|--help)
@@ -171,12 +201,52 @@ unexpose_hub_from_tool() {
   done
 }
 
+# Installe les plugins tiers via le CLI 'claude' (scope user, non interactif).
+# Idempotent : le marketplace déjà connu et un plugin déjà installé renvoient
+# une erreur bénigne, absorbée sans faire échouer le script.
+install_plugins() {
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "warn  CLI 'claude' introuvable, plugins tiers ignorés"
+    return 0
+  fi
+
+  echo "→ marketplace $PLUGIN_MARKETPLACE"
+  claude plugin marketplace add "$PLUGIN_MARKETPLACE" --scope user >/dev/null 2>&1 || true
+
+  local plugin
+  for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do
+    if claude plugin install "${plugin}@${PLUGIN_MARKETPLACE_NAME}" --scope user >/dev/null 2>&1; then
+      echo "plug  ${plugin}"
+    else
+      echo "ok    ${plugin} (déjà présent ou sans changement)"
+    fi
+  done
+}
+
+# Désinstalle uniquement les plugins listés dans ce script (scope user).
+uninstall_plugins() {
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "warn  CLI 'claude' introuvable, plugins tiers ignorés"
+    return 0
+  fi
+
+  local plugin
+  for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do
+    if claude plugin uninstall "${plugin}@${PLUGIN_MARKETPLACE_NAME}" --scope user --yes >/dev/null 2>&1; then
+      echo "rm    ${plugin}"
+    else
+      echo "skip  ${plugin} (absent)"
+    fi
+  done
+}
+
 case "$MODE:$ACTION" in
   global:install)
     HUB="$HOME/.agents/skills"
     install_skills_into "$HUB"
     expose_hub_to_tool claude
     expose_hub_to_tool copilot
+    if [ "$INCLUDE_PLUGINS" = "yes" ]; then install_plugins; fi
     ;;
 
   global:uninstall)
@@ -184,6 +254,7 @@ case "$MODE:$ACTION" in
     unexpose_hub_from_tool claude
     unexpose_hub_from_tool copilot
     uninstall_skills_from "$HUB"
+    if [ "$INCLUDE_PLUGINS" = "yes" ]; then uninstall_plugins; fi
     ;;
 
   local:install)
