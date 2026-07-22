@@ -1,0 +1,8 @@
+# Skill-creator eval byproducts — keep skills/<name>/evals/, ignore run outputs.
+# The skill-creator drops these next to a skill while testing/optimizing it:
+*-workspace/
+desc-opt/
+eval_set.json
+
+# OS / editor cruft
+.DS_Store
