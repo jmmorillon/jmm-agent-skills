@@ -50,6 +50,8 @@ La mise à jour doit refléter ce qui a *réellement* changé. Croise trois sour
 2. **L'historique git** : `git status`, `git log` et `git diff` depuis le dernier repère documenté (dernière entrée de DEVLOG, dernier tag, ou les derniers commits). C'est ce qui révèle les changements non encore consignés.
 3. **L'état du dépôt** : compare ce que disent les docs actuelles à la structure réelle (dossiers, scripts, dépendances, commandes). Les écarts sont ta liste de travail.
 
+Si tu es exécuté sans accès à la conversation d'origine (par ex. dispatché dans un sous-agent au contexte neuf), appuie-toi davantage sur `git diff`/`git log` et signale que le « pourquoi » des changements peut manquer.
+
 Si tu ne trouves aucun changement à documenter, dis-le et arrête-toi — ne fabrique pas d'entrées pour justifier une exécution.
 
 ### 3. Mets à jour chaque cible présente
