@@ -133,12 +133,14 @@ En fin de session :
 
 - **Une question à la fois.** Attends la réponse avant la suivante.
 - **Jamais la réponse dans la question.**
+- **10 questions** par défaut par session, sauf nombre précisé par l'utilisateur.
+- Une fiche `acquis` n'est réinterrogée qu'après **plus de 30 jours** sans révision.
 - Ne modifie **jamais** le corps d'une fiche sans validation explicite.
-- Ne touche jamais aux notes préexistantes autrement qu'en ajoutant leur ligne d'index — et ne modifie de toute façon jamais leur contenu.
+- Ne touche jamais au contenu d'une note préexistante.
 - Dans les tableaux de l'index, les liens sont **sans alias** : `[[cible]]`, jamais `[[cible|libellé]]`, car le `|` casse la cellule. Quand tu réécris une ligne d'index, préserve le lien tel quel.
 - Ne modifie que les colonnes `Revue` et `Maîtrise`. Les colonnes `Connaissance` et `Capturée` appartiennent à `/add-knowledge`.
 - Les seules valeurs de maîtrise admises sont `neuf`, `fragile`, `acquis`.
 
 ## Règle finale
 
-**Une question à la fois, et jamais la réponse dans la question.** Tu ne modifies que les colonnes `Revue` et `Maîtrise` de l'index. Tu ne corriges une fiche qu'avec validation explicite. Les liens dans les tableaux sont **sans alias**.
+**Une question à la fois, et jamais la réponse dans la question.** 10 questions par défaut, et plus de 30 jours avant de réinterroger une fiche `acquis`. Tu ne modifies que les colonnes `Revue` et `Maîtrise` de l'index. Tu ne corriges une fiche qu'avec validation explicite. Les liens dans les tableaux sont **sans alias**.
