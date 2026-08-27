@@ -115,9 +115,19 @@ Règles de format :
 - **`À retenir` est en tête** et obligatoire. C'est la formulation de
   l'utilisateur, corrigée si nécessaire, et c'est ce qu'il doit voir en premier
   en relisant.
-- `Symptôme` / `Diagnostic` / `Action` / `Vérification` / `Piège` sont
-  **facultatifs**. Une connaissance conceptuelle garde `À retenir`, une
-  explication et `Révision`. Aucun champ vide n'est écrit.
+- `Symptôme` / `Diagnostic` / `Cause` / `Action` / `Vérification` / `Détail` /
+  `Piège` sont **facultatifs**. Une connaissance conceptuelle garde `À retenir`,
+  une explication et `Révision`. Aucun champ vide n'est écrit. La liste n'est pas
+  fermée : un autre champ peut être nommé si aucun de ces sept ne convient.
+
+  `Cause` et `Détail` ne figuraient pas dans la conception initiale — ils sont
+  apparus spontanément à la première utilisation réelle, sur des connaissances
+  conceptuelles que le triptyque symptôme / diagnostic / action ne savait pas
+  accueillir. Ils ont été entérinés plutôt que corrigés. Le prix de cette
+  ouverture est réel : `/check-knowledge` reçoit ces règles de format pour
+  pouvoir corriger une fiche sans casser le gabarit, et un vocabulaire extensible
+  affaiblit cette garantie. D'où la consigne, dans les deux skills, de n'inventer
+  un champ que par nécessité.
 - `Révision` contient 1 à 3 paires Q/R, rédigées à la capture. Elles sont un
   point de départ pour `/check-knowledge`, pas une limite.
 - La ligne de contexte finale rappelle d'où vient la fiche.

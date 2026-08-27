@@ -139,7 +139,7 @@ Règles de format :
 - Le frontmatter est **au niveau du fichier thématique**, pas de la fiche. Tu ne l'écris qu'à la création du fichier.
 - Une fiche = une section `##`. **Son titre est unique dans le fichier** : c'est l'ancre de lien. Si le titre existe déjà, c'est un doublon : n'ouvre pas une seconde section, complète la section existante par le parcours d'enrichissement.
 - `**À retenir**` est en tête et **obligatoire**.
-- `Symptôme`, `Diagnostic`, `Action`, `Vérification`, `Piège` sont **facultatifs**. Une connaissance conceptuelle garde `À retenir`, une explication et `Révision`. **N'écris jamais un champ vide.**
+- `Symptôme`, `Diagnostic`, `Cause`, `Action`, `Vérification`, `Détail`, `Piège` sont **facultatifs**. Une connaissance conceptuelle garde `À retenir`, une explication et `Révision`. **N'écris jamais un champ vide.** La liste n'est pas fermée : si aucun de ces sept noms ne convient à la connaissance, tu peux en nommer un autre — un ou deux mots, en gras, suivis d'un tiret cadratin, comme les autres. N'en invente un que par nécessité, pas par confort : plus le vocabulaire s'élargit, moins les fiches se ressemblent.
 - `Révision` : 1 à 3 paires, format `- Q — …` puis `  R — …`.
 - La ligne finale en italique rappelle la date et le contexte d'origine. Le frontmatter `Créée le` et cette date sont au format `AAAA-MM-JJ`, obtenu avec `date +%F`.
 - Si l'utilisateur n'a pas répondu à la question de reformulation, a refusé d'y répondre, ou a répondu par autre chose qu'une reformulation, écris `**À retenir** — _(rédigé par l'agent)_ …`.
