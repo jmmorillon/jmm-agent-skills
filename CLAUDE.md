@@ -43,6 +43,17 @@ The body that follows is the prompt loaded into the agent when the skill activat
 
 A skill may bundle resources next to its `SKILL.md` for progressive disclosure — most commonly a `references/` directory holding detail loaded only when needed (see `skills/project-docs-sync/references/doc-frameworks.md`, read only once a doc-site framework is detected). Keep `SKILL.md` lean and point to the reference file from the body; the resource stays out of context until the skill actually needs it.
 
+**Paired skills sharing a file contract.** `add-knowledge` and `check-knowledge` are two skills coupled by a convention rather than by code: they read and write the same files in the user's Obsidian vault (a fiche gabarit and an index gabarit), and each `SKILL.md` restates both gabarits **in full**. This duplication is deliberate — a skill is loaded alone into an agent's context and cannot import another one, so factoring the shared blocks out would leave each skill incomplete at execution time. The consequence is the part worth remembering: **any change to a shared gabarit must be mirrored in both files**, and nothing in this repo detects drift. When editing one, diff the corresponding block against the other:
+
+```bash
+gab() { awk '/^## Gabarit de fiche/{g=1} g&&/^```markdown/{p=1} p{print} p&&/^```$/{exit}' "$1"; }
+diff <(gab skills/add-knowledge/SKILL.md) <(gab skills/check-knowledge/SKILL.md)
+```
+
+Compare the **fenced block**, not the whole section: a naive `sed` range over the section reports a false alarm, because each skill legitimately introduces the gabarit with its own framing sentence (`check-knowledge` says it does not author fiches, only corrects them). The fenced blocks and the "Règles de format" lists are what must stay byte-identical.
+
+The design rationale behind these two lives in `docs/superpowers/specs/2026-08-27-knowledge-capture-design.md` — that spec is the authority if the skills and it ever disagree.
+
 ## Conventions
 
 - **Author language is French.** The existing skill is written in French; preserve that voice when editing it. New skills may be French or English, but match the language to the skill's intended audience.
