@@ -57,9 +57,12 @@ Connaissances/
 ```
 
 **Périmètre d'écriture strict.** Les skills n'écrivent que dans `_INDEX.md` et
-dans les fichiers thématiques. Est un **fichier thématique** un fichier dont le
-nom est le titre d'une section `##` de `_INDEX.md`, ou que `/add-knowledge` crée
-lui-même. Tout autre `.md` du vault est une **note autonome préexistante**, en
+dans les fichiers thématiques. Est un **fichier thématique** un fichier vers lequel
+pointe le lien du **titre** d'une section `##` de `_INDEX.md` (ces titres ont la
+forme `## Thème / [[Chemin/Fichier]]`), ou que `/add-knowledge` crée lui-même. Le
+critère porte sur le lien du titre de section, pas sur les liens contenus dans la
+section : le titre « Notes autonomes » n'en contient aucun, donc les notes listées
+dans son tableau restent en lecture seule. Tout autre `.md` du vault est une **note autonome préexistante**, en
 lecture seule — y compris les `.md` posés à la racine de `Connaissances/`
 (`Caméra LAPI.md`) ou directement dans un dossier de thème
 (`Prise de notes/Writing by Bob Doto.md`). Elles sont référençables depuis

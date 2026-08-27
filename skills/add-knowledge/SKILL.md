@@ -35,7 +35,7 @@ Connaissances/
     Writing by Bob Doto.md     <- note préexistante, LECTURE SEULE
 ```
 
-**Tu n'écris que dans `_INDEX.md` et dans les fichiers thématiques.** Un **fichier thématique** est un fichier dont le nom est le titre d'une section `##` de `_INDEX.md`, ou que tu crées toi-même. **Tout autre `.md` du vault est une note préexistante, en lecture seule** — y compris les `.md` posés à la racine de `Connaissances/` (`Caméra LAPI.md`) ou directement dans un dossier de thème (`Prise de notes/Writing by Bob Doto.md`). Dans le doute, demande.
+**Tu n'écris que dans `_INDEX.md` et dans les fichiers thématiques.** Un **fichier thématique** est un fichier vers lequel pointe le lien du **titre** d'une section `##` de `_INDEX.md` (ces titres ont la forme `## Thème / [[Chemin/Fichier]]`), ou que tu crées toi-même. Le titre de la section « Notes autonomes » ne contient aucun lien : les fichiers listés dans son tableau restent des notes préexistantes. **Tout autre `.md` du vault est une note préexistante, en lecture seule** — y compris les `.md` posés à la racine de `Connaissances/` (`Caméra LAPI.md`) ou directement dans un dossier de thème (`Prise de notes/Writing by Bob Doto.md`). Dans le doute, demande.
 
 Les notes préexistantes sont référençables depuis l'index, jamais modifiées. Les reformater est le travail d'un autre skill.
 
