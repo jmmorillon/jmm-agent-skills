@@ -26,7 +26,9 @@ résolution en apprentissage**, puis de vérifier que l'apprentissage a tenu.
 - Pas de hook Claude Code ni de capture automatique sans intervention.
 - Pas d'algorithme de répétition espacée à intervalles calculés (SM-2 ou
   similaire). Trois niveaux de maîtrise et une date suffisent.
-- Pas de reprise ou de réécriture des notes déjà présentes dans le vault.
+- Pas de reprise ou de réécriture des notes déjà présentes dans le vault. Les
+  reformater et les compléter fera l'objet d'un skill distinct
+  (`/complete-knowledge`), hors périmètre de cette spec.
 - Pas d'interface, pas de plugin Obsidian, pas de base de données. Du Markdown.
 
 ## Emplacement et périmètre d'écriture
@@ -165,12 +167,14 @@ Trois portes d'entrée, encodées dans la `description` du frontmatter :
    a trouvé sa réponse, ou qu'une erreur déjà commise se répète. Même mécanique
    que `project-docs-sync` après une tâche d'ampleur.
 3. **Bilan de fin de session** — quand l'utilisateur clôt une session, l'agent
-   propose les connaissances candidates repérées en chemin.
+   propose les connaissances candidates repérées en chemin. Une session peut
+   être longue : jusqu'à 10 candidats.
 
 ### Parcours
 
 1. **Isoler la connaissance** dans ce qui vient de se passer. Une seule à la
-   fois. En mode bilan : 5 candidats maximum, traités un par un.
+   fois. En mode bilan : 10 candidats maximum, listés d'abord, puis traités un
+   par un — la liste sert à trier, elle n'autorise pas le traitement en lot.
 2. **Lire `_INDEX.md`** avant toute chose — thèmes existants et détection de
    doublon. Si une fiche proche existe, proposer de **l'enrichir** plutôt que
    d'en créer une seconde.
@@ -265,3 +269,11 @@ Il n'y a ni test ni build dans ce dépôt. La vérification est manuelle :
    jour après la réponse.
 4. Ouvrir `_INDEX.md` dans Obsidian et confirmer que les tableaux s'affichent
    correctement et que les liens résolvent vers les bonnes ancres.
+
+## Suite envisagée
+
+`/complete-knowledge` : cibler une connaissance existante — en particulier une
+note autonome préexistante, longue et sans Q/R — pour la reformater au gabarit
+de fiche et la compléter. C'est le seul skill autorisé à écrire dans les notes
+autonomes. Il sera conçu séparément, une fois `/add-knowledge` et
+`/check-knowledge` en service.
