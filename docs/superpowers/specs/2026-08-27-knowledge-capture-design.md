@@ -209,8 +209,9 @@ l'utilisateur.
 
 ### Parcours
 
-Par défaut 5 questions, une à la fois. L'utilisateur peut préciser un thème
-(« interroge-moi sur le réseau ») ou un nombre.
+Par défaut 10 questions, une à la fois. L'utilisateur peut préciser un thème
+(« interroge-moi sur le réseau ») ou un nombre. Il peut aussi arrêter la session
+en cours de route : le récapitulatif porte alors sur les questions déjà posées.
 
 1. **Lire `_INDEX.md`** et sélectionner : d'abord les `neuf`, puis les
    `fragile`, puis les `acquis` non revus depuis plus de 30 jours.
