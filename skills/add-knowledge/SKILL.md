@@ -62,6 +62,8 @@ Pour chaque connaissance, dans cet ordre :
 
    C'est le cœur du skill. N'en pose pas d'autres, n'enchaîne pas sur un interrogatoire.
 
+   Si l'utilisateur ne répond pas, décline, ou répond par autre chose qu'une reformulation, n'insiste pas et ne repose pas la question : rédige un `À retenir` de ta plume, marqué `_(rédigé par l'agent)_`, et signale-le dans la ligne de confirmation finale.
+
 4. **Rédige la fiche** au gabarit ci-dessous :
    - le `À retenir` reprend la formulation de l'utilisateur. Si elle contient une erreur, corrige-la **et signale la correction explicitement** sous la fiche, en une ligne — c'est là que l'apprentissage se joue ;
    - le corps technique (symptôme, diagnostic, commandes, vérification, piège) est de ta plume : c'est du factuel, autant qu'il soit exact ;
@@ -126,7 +128,7 @@ Règles de format :
 - `Symptôme`, `Diagnostic`, `Action`, `Vérification`, `Piège` sont **facultatifs**. Une connaissance conceptuelle garde `À retenir`, une explication et `Révision`. **N'écris jamais un champ vide.**
 - `Révision` : 1 à 3 paires, format `- Q — …` puis `  R — …`.
 - La ligne finale en italique rappelle la date et le contexte d'origine.
-- Si l'utilisateur a passé la reformulation, écris `**À retenir** — _(rédigé par l'agent)_ …`.
+- Si l'utilisateur n'a pas répondu à la question de reformulation, ou a refusé d'y répondre, écris `**À retenir** — _(rédigé par l'agent)_ …`.
 
 ## Gabarit d'index
 
