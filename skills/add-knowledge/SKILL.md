@@ -90,7 +90,7 @@ Pour chaque connaissance, dans cet ordre :
 
    **En enrichissement** : complète la section existante (ajoute au corps technique, ajoute des paires Q/R sans dépasser 3 au total), sans réécrire le `À retenir` ni la ligne de contexte d'origine. **N'ajoute pas de ligne d'index** — elle existe déjà ; ne touche ni à `Capturée`, ni à `Revue`, ni à `Maîtrise`. Signale-le à l'utilisateur : la fiche a changé, sa maîtrise enregistrée ne reflète plus tout à fait son contenu.
 
-7. **Confirme en une ligne** : titre de la fiche, fichier, thème.
+7. **Confirme en une ligne** : titre de la fiche et fichier de destination — le chemin du fichier porte déjà le thème.
 
 ## Choix du thème
 
@@ -224,6 +224,8 @@ Après écriture, une seule ligne de confirmation.
 Nouvelle fiche :
 
 `✓ « Libérer un port TCP occupé » → Développement/Réseau.md — index à jour (neuf)`
+
+Si le `À retenir` est de ta plume, ajoute ` — À retenir rédigé par l'agent` en fin de ligne.
 
 Enrichissement :
 
