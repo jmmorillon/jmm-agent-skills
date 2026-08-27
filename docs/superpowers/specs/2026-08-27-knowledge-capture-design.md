@@ -57,8 +57,16 @@ Connaissances/
 ```
 
 **Périmètre d'écriture strict.** Les skills n'écrivent que dans `_INDEX.md` et
-dans les fichiers thématiques qu'ils ont eux-mêmes créés. Les notes autonomes
-préexistantes sont référençables depuis l'index, jamais modifiées.
+dans les fichiers thématiques. Est un **fichier thématique** un fichier dont le
+nom est le titre d'une section `##` de `_INDEX.md`, ou que `/add-knowledge` crée
+lui-même. Tout autre `.md` du vault est une **note autonome préexistante**, en
+lecture seule — y compris les `.md` posés à la racine de `Connaissances/`
+(`Caméra LAPI.md`) ou directement dans un dossier de thème
+(`Prise de notes/Writing by Bob Doto.md`). Elles sont référençables depuis
+l'index, jamais modifiées.
+
+Le critère est l'index, pas la session : une session doit pouvoir compléter un
+fichier thématique créé la veille. Un critère « créé par moi » l'en empêcherait.
 
 **Conventions du vault** à respecter : accents et espaces dans les noms de
 dossiers, tags hiérarchiques (`Dev/Réseau`), frontmatter avec `Titre`, `Tags`,
@@ -144,12 +152,18 @@ Règles :
 - **Liens sans alias dans les tableaux.** Un `[[cible|libellé]]` casse la
   cellule : le `|` est lu comme séparateur de colonne. Cette règle est inscrite
   explicitement dans les deux skills.
-- Trois niveaux de maîtrise : `neuf` (jamais révisé), `fragile` (révisé, réponse
-  incomplète ou fausse), `acquis` (répondu juste).
+- Trois niveaux de maîtrise : `neuf` (jamais révisée, ou remise à zéro après une
+  réponse fausse), `fragile` (révisée, réponse incomplète), `acquis` (répondu
+  juste).
 - Dates au format `AAAA-MM-JJ`, `—` quand la valeur est absente.
 - Une section `##` par fichier thématique, dans l'ordre alphabétique.
 - Le second tableau permet d'interroger l'utilisateur sur ses notes
-  préexistantes sans que `/add-knowledge` ait à les toucher.
+  préexistantes sans que `/add-knowledge` ait à les toucher. `/add-knowledge` y
+  ajoute une ligne **uniquement sur demande explicite**, jamais spontanément, et
+  n'écrit rien dans la note elle-même. `/check-knowledge` interroge ces notes
+  autrement : elles n'ont ni gabarit ni bloc `Révision`, donc il lit la note
+  entière et formule la question lui-même — et il ne les corrige **jamais**, même
+  avec validation. C'est la différence avec une fiche.
 
 **Séparation des écrivains** : `/add-knowledge` crée les lignes ; les colonnes
 `Revue` et `Maîtrise` appartiennent à `/check-knowledge`.
@@ -187,7 +201,28 @@ Trois portes d'entrée, encodées dans la `description` du frontmatter :
 6. **Écrire** : section ajoutée à la fin du fichier thématique (pas de
    réordonnancement — l'index est la vue navigable), puis ligne d'index en
    `neuf`.
-7. **Confirmer en une ligne** : fiche, fichier, thème.
+7. **Confirmer en une ligne** : fiche et fichier de destination — le chemin du
+   fichier porte déjà le thème.
+
+### Le cas de l'enrichissement
+
+Quand l'étape 2 détecte une fiche proche, le parcours bifurque. Ce qu'un
+enrichissement écrit, et ce qu'il ne touche pas :
+
+- **L'étape 3 ne pose pas la question de reformulation.** Le `À retenir` de la
+  fiche existante reste tel quel : une fiche n'en a qu'un seul.
+- **L'étape 4 ne rédige que le complément** — du corps technique en plus, des
+  paires Q/R en plus, sans dépasser les 3 paires que le gabarit autorise.
+- **L'étape 6 complète la section existante** au lieu d'en ajouter une à la fin,
+  et n'écrit **aucune ligne d'index** — elle existe déjà. Une seconde ligne pour
+  la même ancre serait irréparable : `/check-knowledge` n'a pas le droit d'en
+  supprimer.
+- **`Capturée`, `Revue` et `Maîtrise` restent intactes.** Conséquence à signaler
+  à l'utilisateur : une fiche `acquis` enrichie contient désormais du contenu sur
+  lequel il n'a jamais été interrogé, et sa maîtrise enregistrée ne reflète plus
+  tout à fait son contenu.
+- **La ligne de confirmation dit ce qui s'est réellement passé** : section
+  complétée, aucune ligne d'index ajoutée, maîtrise inchangée.
 
 ### Choix du thème
 
