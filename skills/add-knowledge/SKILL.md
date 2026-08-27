@@ -26,14 +26,18 @@ Structure :
 ```
 Connaissances/
   _INDEX.md                    <- sommaire + état de révision
+  Caméra LAPI.md               <- note préexistante à la racine, LECTURE SEULE
   Développement/
     Réseau.md                  <- fichier thématique incrémental
     GIT/                       <- notes préexistantes, LECTURE SEULE
   IA/
   Prise de notes/
+    Writing by Bob Doto.md     <- note préexistante, LECTURE SEULE
 ```
 
-**Tu n'écris que dans `_INDEX.md` et dans les fichiers thématiques.** Les notes préexistantes (celles qui vivent dans des sous-dossiers comme `GIT/` ou `Skills IA/`, une note par sujet) sont référençables depuis l'index, jamais modifiées. Les reformater est le travail d'un autre skill.
+**Tu n'écris que dans `_INDEX.md` et dans les fichiers thématiques.** Un **fichier thématique** est un fichier qui apparaît en section `##` de `_INDEX.md`, ou que tu crées toi-même. **Tout autre `.md` du vault est une note préexistante, en lecture seule** — y compris les `.md` posés à la racine de `Connaissances/` (`Caméra LAPI.md`) ou directement dans un dossier de thème (`Prise de notes/Writing by Bob Doto.md`). Dans le doute, demande.
+
+Les notes préexistantes sont référençables depuis l'index, jamais modifiées. Les reformater est le travail d'un autre skill.
 
 ## Quand te déclencher
 
@@ -64,6 +68,8 @@ Pour chaque connaissance, dans cet ordre :
 
    Si l'utilisateur ne répond pas, décline, ou répond par autre chose qu'une reformulation, n'insiste pas et ne repose pas la question : rédige un `À retenir` de ta plume, marqué `_(rédigé par l'agent)_`, et signale-le dans la ligne de confirmation finale.
 
+   **En enrichissement, ne pose pas cette question** : le `À retenir` de la fiche existante reste tel quel. Une fiche n'a qu'un seul `À retenir`.
+
 4. **Rédige la fiche** au gabarit ci-dessous :
    - le `À retenir` reprend la formulation de l'utilisateur. Si elle contient une erreur, corrige-la **et signale la correction explicitement** sous la fiche, en une ligne — c'est là que l'apprentissage se joue ;
    - le corps technique (symptôme, diagnostic, commandes, vérification, piège) est de ta plume : c'est du factuel, autant qu'il soit exact ;
@@ -71,16 +77,20 @@ Pour chaque connaissance, dans cet ordre :
 
 5. **Présente la fiche entière** et attends la décision : valider, corriger, annuler.
 
-6. **Écris**, uniquement si validé :
+6. **Écris**, uniquement si validé.
+
+   **Nouvelle fiche** :
    - ajoute la section **à la fin** du fichier thématique. Ne réordonne rien : l'index est la vue navigable ;
    - crée le fichier thématique s'il n'existe pas, avec son frontmatter ;
    - ajoute la ligne d'index, maîtrise `neuf`.
+
+   **En enrichissement** : complète la section existante (ajoute au corps technique, ajoute des paires Q/R sans dépasser 3 au total), sans réécrire le `À retenir` ni la ligne de contexte d'origine. **N'ajoute pas de ligne d'index** — elle existe déjà ; ne touche ni à `Capturée`, ni à `Revue`, ni à `Maîtrise`. Signale-le à l'utilisateur : la fiche a changé, sa maîtrise enregistrée ne reflète plus tout à fait son contenu.
 
 7. **Confirme en une ligne** : titre de la fiche, fichier, thème.
 
 ## Choix du thème
 
-Réutilise un fichier thématique existant dès qu'il convient. N'en crée un nouveau que si aucun ne correspond clairement **et** que le sujet justifie un regroupement (au moins 2-3 fiches attendues à terme). Sinon, place la fiche dans le fichier thématique le plus proche.
+Réutilise un fichier thématique existant dès qu'il convient. N'en crée un nouveau que si aucun ne correspond clairement **et** que le sujet justifie un regroupement (au moins 2-3 fiches attendues à terme). Sinon, place la fiche dans le fichier thématique existant le plus proche — un **fichier thématique** au sens ci-dessus, jamais une note préexistante.
 
 Créer un **nouveau dossier de thème racine** demande l'accord explicite de l'utilisateur.
 
@@ -123,12 +133,12 @@ _Capturée le 2026-08-27 — contexte : serveur PHP de email-api-check._
 Règles de format :
 
 - Le frontmatter est **au niveau du fichier thématique**, pas de la fiche. Tu ne l'écris qu'à la création du fichier.
-- Une fiche = une section `##`. **Son titre est unique dans le fichier** : c'est l'ancre de lien. Si le titre existe déjà, c'est un doublon — retourne à l'étape 2.
+- Une fiche = une section `##`. **Son titre est unique dans le fichier** : c'est l'ancre de lien. Si le titre existe déjà, c'est un doublon : n'ouvre pas une seconde section, complète la section existante par le parcours d'enrichissement.
 - `**À retenir**` est en tête et **obligatoire**.
 - `Symptôme`, `Diagnostic`, `Action`, `Vérification`, `Piège` sont **facultatifs**. Une connaissance conceptuelle garde `À retenir`, une explication et `Révision`. **N'écris jamais un champ vide.**
 - `Révision` : 1 à 3 paires, format `- Q — …` puis `  R — …`.
-- La ligne finale en italique rappelle la date et le contexte d'origine.
-- Si l'utilisateur n'a pas répondu à la question de reformulation, ou a refusé d'y répondre, écris `**À retenir** — _(rédigé par l'agent)_ …`.
+- La ligne finale en italique rappelle la date et le contexte d'origine. Le frontmatter `Créée le` et cette date sont au format `AAAA-MM-JJ`, obtenu avec `date +%F`.
+- Si l'utilisateur n'a pas répondu à la question de reformulation, a refusé d'y répondre, ou a répondu par autre chose qu'une reformulation, écris `**À retenir** — _(rédigé par l'agent)_ …`.
 
 ## Gabarit d'index
 
@@ -157,9 +167,10 @@ Règles :
 - **Liens sans alias dans les tableaux.** `[[cible]]`, jamais `[[cible|libellé]]` : le `|` serait lu comme un séparateur de colonne et casserait la cellule. C'est l'erreur la plus facile à commettre ici.
 - Une section `##` par fichier thématique, sections dans l'ordre alphabétique.
 - Maîtrise à la création : toujours `neuf`. Colonne `Revue` : `—`.
+- Les dates sont au format `AAAA-MM-JJ`, valeur absente `—`. **Obtiens la date du jour avec `date +%F` — ne la recopie pas du gabarit et ne l'écris pas de mémoire.**
 - Les colonnes `Revue` et `Maîtrise` appartiennent à `/check-knowledge`. Tu les initialises, tu ne les fais pas évoluer.
 - Crée `_INDEX.md` avec son en-tête s'il n'existe pas.
-- Le tableau « Notes autonomes » sert à faire réviser les notes préexistantes. Tu peux y ajouter une ligne, jamais toucher la note elle-même.
+- Le tableau « Notes autonomes » sert à faire réviser les notes préexistantes. Tu n'y ajoutes une ligne **qu'à la demande explicite de l'utilisateur**, jamais spontanément : aucune étape de la méthode n'y conduit. La ligne se crée avec `Revue` à `—` et maîtrise `neuf`, et n'entraîne **aucune écriture dans la note elle-même**.
 
 ## Contraintes
 
@@ -178,6 +189,7 @@ Réponds en français. Avant d'écrire, présente exactement ce bloc :
 
 **Connaissance** : _titre de la fiche_
 **Fichier** : `Développement/Réseau.md` _(existant / **nouveau**)_
+**Nouveau dossier de thème racine** : `Nom du dossier/` — **ton accord explicite est requis** _(cette ligne uniquement s'il faut en créer un)_
 **Action** : nouvelle fiche / enrichissement de « _titre existant_ »
 
 ```markdown
@@ -196,4 +208,4 @@ Après écriture, une seule ligne de confirmation :
 
 ## Règle finale
 
-**Une connaissance à la fois. 10 candidats maximum en bilan de fin de session.** Tu poses **une seule** question de reformulation. Tu n'écris rien sans validation explicite. Tu ne touches jamais aux notes préexistantes. Dans les tableaux de l'index, les liens sont **sans alias**.
+**Une connaissance à la fois. 10 candidats maximum en bilan de fin de session.** Tu poses **une seule** question de reformulation. Tu n'écris rien sans validation explicite. Tu n'écris que dans `_INDEX.md` et dans les fichiers thématiques : tu ne touches jamais aux notes préexistantes. En enrichissement, tu n'ajoutes **aucune** ligne d'index. Les dates viennent de `date +%F`, jamais du gabarit. Dans les tableaux de l'index, les liens sont **sans alias**.
