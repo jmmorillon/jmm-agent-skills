@@ -1,0 +1,144 @@
+---
+name: check-knowledge
+description: À utiliser pour interroger l'utilisateur sur les connaissances capturées dans son vault Obsidian et vérifier ce qu'il a réellement retenu. Déclenche ce skill quand il tape « /check-knowledge », ou demande « interroge-moi », « teste-moi », « fais-moi réviser », « est-ce que j'ai retenu ? » — éventuellement en précisant un thème (« interroge-moi sur le réseau ») ou un nombre de questions. Ne le déclenche pas de toi-même : réviser se décide, ça ne s'impose pas au milieu d'un travail.
+---
+
+# Check Knowledge
+
+Tu vérifies ce que l'utilisateur a réellement retenu — pas ce qui est écrit dans son vault.
+
+Une fiche relue n'est pas une fiche sue. Ton rôle est de poser des questions dont la réponse ne se trouve pas sous les yeux, d'évaluer sans complaisance, et de tenir à jour ce qui est acquis et ce qui glisse.
+
+## Emplacement
+
+Dossier cible, fixe :
+
+```
+~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second cerveau 2/Second Cerveau 2/Connaissances
+```
+
+Le chemin contient des espaces : cite-le systématiquement en shell.
+
+**S'il est absent, ou si `_INDEX.md` n'existe pas, arrête-toi et dis-le** — il n'y a rien à réviser, et c'est `/add-knowledge` qui crée l'index.
+
+## Session
+
+Par défaut **10 questions, une à la fois**. L'utilisateur peut préciser :
+- un **thème** (« interroge-moi sur le réseau ») → restreins la sélection à ce fichier thématique ;
+- un **nombre** (« 3 questions ») → respecte-le ;
+- **arrêter en cours de route** → le récapitulatif porte alors sur les questions déjà posées.
+
+S'il reste moins de fiches disponibles que de questions demandées, dis-le et pose ce qu'il y a. Ne repose pas deux fois la même fiche dans une session.
+
+## Méthode
+
+1. **Lis `_INDEX.md`** et sélectionne les fiches à demander, dans cet ordre de priorité :
+   1. maîtrise `neuf` (jamais révisée) — et parmi elles, d'abord celles dont le `À retenir` est marqué `_(rédigé par l'agent)_` : ce sont celles que l'utilisateur n'a pas formulées, donc pas digérées. Ce marqueur n'est pas dans l'index : pour le voir, ouvre les fiches `neuf` — elles seules, pas tout le vault ;
+   2. maîtrise `fragile` ;
+   3. maîtrise `acquis` dont la colonne `Revue` date de **plus de 30 jours**.
+
+   Si les trois catégories sont vides, dis-le : tout est à jour, il n'y a rien à réviser.
+
+2. **Lis la fiche** correspondante dans son fichier thématique, pour toi seul.
+
+3. **Pose la question sans afficher la fiche.** Pars des paires Q/R du bloc `Révision`, mais ne t'y enferme pas : reformule, demande le *pourquoi* plutôt que le *comment*, ou croise deux fiches d'un même thème. Sinon l'utilisateur mémorise la formulation de la question, pas la réponse.
+
+   **Ne donne jamais la réponse dans l'énoncé.** Pas d'indice, pas de commande citée, pas de choix multiple sauf s'il le demande.
+
+4. **Attends la réponse.** Une question à la fois. N'enchaîne pas.
+
+5. **Évalue** en comparant à la fiche : ce qui est juste, ce qui manque, ce qui est faux. Factuel, sur la réponse — jamais sur la personne. S'il sèche, donne la réponse complète : une révision n'est pas un examen.
+
+6. **Mets à jour l'index** :
+
+   | Réponse | Nouvelle maîtrise |
+   | --- | --- |
+   | juste et complète | `acquis` |
+   | approximative ou partielle | `fragile` |
+   | fausse, ou « je ne sais pas » | `neuf` |
+
+   Plus la date du jour dans la colonne `Revue`. Une fiche `acquis` répondue faussement redescend donc à `neuf`.
+
+7. **Boucle de retour.** Si la réponse était fausse *parce que la fiche est confuse, incomplète ou datée* — pas parce qu'il a oublié — dis-le et propose de la corriger. **Attends sa validation avant d'écrire quoi que ce soit dans la fiche.** C'est ce qui empêche le vault de fossiliser une mauvaise explication.
+
+8. **Enchaîne** la question suivante.
+
+## Gabarit d'index
+
+C'est le fichier que tu lis pour choisir, et la seule chose que tu écris.
+
+```markdown
+# Index des connaissances
+
+_Maintenu par /add-knowledge et /check-knowledge. Une ligne = une fiche._
+
+## Développement / [[Développement/Réseau]]
+
+| Connaissance | Capturée | Revue | Maîtrise |
+| --- | --- | --- | --- |
+| [[Développement/Réseau#Libérer un port TCP occupé]] | 2026-08-27 | — | neuf |
+
+## Notes autonomes (hors système, en lecture seule)
+
+| Note | Revue | Maîtrise |
+| --- | --- | --- |
+| [[Développement/GIT/Utilisation de Git Worktree avec des Agents IA Multiples]] | — | neuf |
+```
+
+Tu modifies **une cellule `Revue` et une cellule `Maîtrise`** par question, rien d'autre. Tu ne réordonnes pas les lignes, tu n'en ajoutes pas, tu n'en supprimes pas.
+
+## Sortie obligatoire
+
+Réponds en français.
+
+Pour poser une question :
+
+---
+
+**Question 3/10** — _Développement / Réseau_
+
+_l'énoncé, sans indice_
+
+---
+
+Après la réponse de l'utilisateur :
+
+---
+
+**Verdict** : juste / approximatif / faux
+
+_Ce qui était juste_ : _(une ligne)_
+_Ce qui manquait_ : _(une ligne, si applicable)_
+
+**Index** : « Libérer un port TCP occupé » → `acquis` (2026-08-27)
+
+---
+
+En fin de session :
+
+---
+
+## Récapitulatif
+
+- Questions posées : N
+- Monté d'un niveau : _liste_
+- Descendu d'un niveau : _liste_
+- Inchangé : N
+- À revoir bientôt : _les fiches passées en `neuf` ou `fragile`_
+- Fiches corrigées : _liste, ou « aucune »_
+
+---
+
+## Contraintes
+
+- **Une question à la fois.** Attends la réponse avant la suivante.
+- **Jamais la réponse dans la question.**
+- Ne modifie **jamais** le corps d'une fiche sans validation explicite.
+- Ne touche jamais aux notes préexistantes autrement qu'en ajoutant leur ligne d'index — et ne modifie de toute façon jamais leur contenu.
+- Dans les tableaux de l'index, les liens sont **sans alias** : `[[cible]]`, jamais `[[cible|libellé]]`, car le `|` casse la cellule. Quand tu réécris une ligne d'index, préserve le lien tel quel.
+- Ne modifie que les colonnes `Revue` et `Maîtrise`. Les colonnes `Connaissance` et `Capturée` appartiennent à `/add-knowledge`.
+- Les seules valeurs de maîtrise admises sont `neuf`, `fragile`, `acquis`.
+
+## Règle finale
+
+**Une question à la fois, et jamais la réponse dans la question.** Tu ne modifies que les colonnes `Revue` et `Maîtrise` de l'index. Tu ne corriges une fiche qu'avec validation explicite. Les liens dans les tableaux sont **sans alias**.
