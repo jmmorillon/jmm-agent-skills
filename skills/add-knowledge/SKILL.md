@@ -35,7 +35,7 @@ Connaissances/
     Writing by Bob Doto.md     <- note préexistante, LECTURE SEULE
 ```
 
-**Tu n'écris que dans `_INDEX.md` et dans les fichiers thématiques.** Un **fichier thématique** est un fichier qui apparaît en section `##` de `_INDEX.md`, ou que tu crées toi-même. **Tout autre `.md` du vault est une note préexistante, en lecture seule** — y compris les `.md` posés à la racine de `Connaissances/` (`Caméra LAPI.md`) ou directement dans un dossier de thème (`Prise de notes/Writing by Bob Doto.md`). Dans le doute, demande.
+**Tu n'écris que dans `_INDEX.md` et dans les fichiers thématiques.** Un **fichier thématique** est un fichier dont le nom est le titre d'une section `##` de `_INDEX.md`, ou que tu crées toi-même. **Tout autre `.md` du vault est une note préexistante, en lecture seule** — y compris les `.md` posés à la racine de `Connaissances/` (`Caméra LAPI.md`) ou directement dans un dossier de thème (`Prise de notes/Writing by Bob Doto.md`). Dans le doute, demande.
 
 Les notes préexistantes sont référençables depuis l'index, jamais modifiées. Les reformater est le travail d'un autre skill.
 
@@ -70,10 +70,14 @@ Pour chaque connaissance, dans cet ordre :
 
    **En enrichissement, ne pose pas cette question** : le `À retenir` de la fiche existante reste tel quel. Une fiche n'a qu'un seul `À retenir`.
 
-4. **Rédige la fiche** au gabarit ci-dessous :
+4. **Rédige la fiche** au gabarit ci-dessous.
+
+   **Nouvelle fiche** :
    - le `À retenir` reprend la formulation de l'utilisateur. Si elle contient une erreur, corrige-la **et signale la correction explicitement** sous la fiche, en une ligne — c'est là que l'apprentissage se joue ;
    - le corps technique (symptôme, diagnostic, commandes, vérification, piège) est de ta plume : c'est du factuel, autant qu'il soit exact ;
    - rédige 1 à 3 paires Q/R de révision.
+
+   **En enrichissement**, tu ne rédiges que ce qui s'ajoute : le complément de corps technique, de ta plume, et les paires Q/R nouvelles. Le `À retenir` et la ligne de contexte d'origine restent tels quels — les limites d'écriture sont à l'étape 6.
 
 5. **Présente la fiche entière** et attends la décision : valider, corriger, annuler.
 
@@ -183,7 +187,7 @@ Règles :
 
 ## Sortie obligatoire
 
-Réponds en français. Avant d'écrire, présente exactement ce bloc :
+Réponds en français. Avant d'écrire une fiche, présente exactement ce bloc :
 
 ---
 
@@ -202,9 +206,28 @@ _Correction apportée à ta formulation_ : _(une ligne, uniquement s'il y en a u
 
 ---
 
-Après écriture, une seule ligne de confirmation :
+Avant d'inscrire une note préexistante au tableau « Notes autonomes » — à la demande explicite de l'utilisateur uniquement — présente exactement ce bloc, plus court :
+
+---
+
+**Note préexistante** : `Développement/GIT/Utilisation de Git Worktree avec des Agents IA Multiples.md`
+**Action** : inscription au tableau « Notes autonomes » de `_INDEX.md` — aucune écriture dans la note
+
+`| [[Développement/GIT/Utilisation de Git Worktree avec des Agents IA Multiples]] | — | neuf |`
+
+→ **Valider, corriger ou annuler ?**
+
+---
+
+Après écriture, une seule ligne de confirmation.
+
+Nouvelle fiche :
 
 `✓ « Libérer un port TCP occupé » → Développement/Réseau.md — index à jour (neuf)`
+
+Enrichissement :
+
+`✓ « Libérer un port TCP occupé » complétée → Développement/Réseau.md — aucune ligne d'index ajoutée, maîtrise inchangée (elle ne reflète plus tout à fait la fiche)`
 
 ## Règle finale
 
