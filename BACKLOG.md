@@ -9,8 +9,11 @@
 
 ## En cours
 - [ ] Éprouver `project-docs-sync` sur de vrais projets et affiner à l'usage (approche retenue plutôt que des evals formelles).
+- [ ] Éprouver `/add-journal` en session réelle, en particulier son déclenchement : l'optimisation de description par `run_loop.py` n'a rien pu départager. Reprendre la description à partir des formulations qui ne déclenchent pas.
 
 ## Fait
+- [x] Créer le skill `add-journal` et l'évaluer sur des copies du vault (3 cas, avec et sans skill).
+- [x] Créer le skill `writing-pr`.
 - [x] Créer les skills `add-knowledge` et `check-knowledge` (spec et plan sous `docs/superpowers/`).
 - [x] Fumiger les deux skills en session réelle : 3 fiches capturées, pas de doublon, index et état de révision corrects, boucle de retour déclenchée (une révision a produit une fiche supplémentaire).
 - [x] `install.sh` : installation des plugins tiers + sous-agents (bootstrap machine complet).

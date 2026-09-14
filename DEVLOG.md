@@ -1,5 +1,12 @@
 # Devlog
 
+## 2026-09-14 — Journal de projet et rédaction de PR
+
+- **Nouveau skill `add-journal`.** Consigne l'avancement d'un projet dans sa fiche du vault Obsidian. Plutôt que d'inventer une section, il réutilise `## Track Log`, déjà présente dans le Modèle Projet du vault et dans 28 fiches — mais tenue dans quatre formats différents. Arbitrage : un format imposé pour les nouvelles entrées (`### AAAA-MM-JJ` + 1 à 6 puces, la plus récente en haut), sans jamais reformater l'existant. Le skill lit le Modèle Projet dans le vault au moment de créer une fiche au lieu de le recopier : pas de gabarit dupliqué à tenir synchronisé, contrairement au couple `add-knowledge` / `check-knowledge`.
+- **Évalué sur des copies du vault** (3 cas, avec et sans skill) : 29/29 assertions avec le skill contre 21/29 sans. Sans skill, l'agent ajoute en bas, rédige en paragraphes, coche des tâches et tranche des ADR de lui-même.
+- **Optimisation de la description non concluante.** Les 5 itérations de `run_loop.py` plafonnent au même score sur le jeu de test ; le rappel reste quasi nul quelle que soit la description. Le harnais lance `claude -p` depuis ce dépôt, sans le vault : l'agent répond directement au lieu d'ouvrir le skill. Description d'origine conservée — le déclenchement est à juger à l'usage.
+- **Nouveau skill `writing-pr`** : titre et corps de Pull Request, en français par défaut, concis (puces, extraits, Mermaid).
+
 ## 2026-08-27 — Capture et révision de connaissances
 
 - **Deux nouveaux skills, `add-knowledge` et `check-knowledge`.** Le premier capture dans le vault Obsidian une connaissance acquise en session — fiche thématique incrémentale sous `Connaissances/`, plus une ligne dans un index global. Le second interroge plus tard sur ce qui n'est pas acquis et tient à jour l'état de révision. Le point qui a demandé le plus d'arbitrage n'est pas le format mais la *méthode d'ajout* : le skill fait reformuler l'utilisateur avec ses mots avant d'écrire, parce qu'une fiche qu'il n'a pas formulée ne fait que déplacer son ignorance dans un fichier.

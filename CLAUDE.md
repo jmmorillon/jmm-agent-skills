@@ -54,6 +54,10 @@ Compare the **fenced block**, not the whole section: a naive `sed` range over th
 
 The design rationale behind these two lives in `docs/superpowers/specs/2026-08-27-knowledge-capture-design.md` — that spec is the authority if the skills and it ever disagree.
 
+**`add-journal` reads its template from the vault, on purpose.** It writes project entries into the `## Track Log` of project notes and, when creating a note, reads `Domaines/Outils/Modèles Obsidian/Modèle Projet.md` live instead of restating it. Don't inline that template into the `SKILL.md`: the user edits it in Obsidian, and a copy would drift silently. Only the entry format (`### AAAA-MM-JJ` + bullets) is owned by the skill.
+
+**Description optimization doesn't work for vault skills.** skill-creator's `run_loop.py` runs `claude -p` from this repo, where the vault is absent; the agent answers directly instead of opening the skill, so recall stays near zero whatever the description. For `add-journal` all 5 iterations tied — judge triggering in real sessions instead.
+
 ## Conventions
 
 - **Author language is French.** The existing skill is written in French; preserve that voice when editing it. New skills may be French or English, but match the language to the skill's intended audience.
