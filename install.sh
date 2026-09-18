@@ -4,6 +4,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_SRC="$SCRIPT_DIR/skills"
 AGENTS_SRC="$SCRIPT_DIR/agents"
+AUDIT="$SCRIPT_DIR/scripts/audit.sh"
+HUB="$HOME/.agents/skills"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/scripts/lib.sh"
 
 # Plugins tiers à (dé)installer en mode --global. Tous proviennent du
 # marketplace officiel Anthropic. C'est le bootstrap « nouvelle machine » :
@@ -23,44 +27,60 @@ THIRD_PARTY_PLUGINS=(
   chrome-devtools-mcp
 )
 
+# Skills tierces installées via skills.sh (npx skills) en --global, mises à
+# jour par --update. « source [-exclusion …] » : toute la source GitHub, sauf
+# les skills préfixées de -. Copie unique dans ~/.agents/skills, lue par tous
+# les agents ; -a les expose en plus à Claude Code et Copilot. Ne pas lister
+# ici une source aussi installée en plugin : chaque skill existerait en double.
+THIRD_PARTY_SKILLS=(
+  "mattpocock/skills -implement-spec -pr -retro"
+  "vercel-labs/skills"
+  "cocoindex-io/cocoindex-code"
+)
+THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
+
 usage() {
   cat <<EOF
-Usage: install.sh (--global | --local [chemin]) [--uninstall]
-       install.sh --update-plugins
+Usage: install.sh (--global | --local [chemin]) [--uninstall] [options]
+       install.sh --update [options]
+       install.sh --audit-installed [--no-llm]
+       install.sh --reconsider <nom> [mode]
 
-Installe (ou désinstalle) les skills de ce dépôt par symlinks.
+Relie les skills de ce dépôt par symlinks, et installe ou met à jour les skills
+et plugins tiers listés dans ce script, derrière un audit de sécurité.
 
-  --global              Installe dans le hub ~/.agents/skills, puis expose ce
-                        hub à ~/.claude/skills et ~/.copilot/skills (un symlink
-                        racine par outil). Tu gères les skills à un seul
-                        endroit ; les deux outils les voient.
-  --local [chemin]      Installe directement dans <chemin>/.claude/skills et
-                        <chemin>/.copilot/skills (défaut chemin = cwd). Utile
-                        pour limiter une skill à un projet.
-  --uninstall           Retire les symlinks créés par ce dépôt. À combiner
-                        avec --global ou --local [chemin].
-  --update-plugins      Rafraîchit le marketplace puis met à jour chaque plugin
-                        tiers listé dans ce script (scope user). Ne touche à
-                        aucun symlink ; s'utilise seul. Redémarrer Claude Code
-                        pour appliquer les mises à jour.
-  --no-plugins          En mode --global, n'installe (ni ne désinstalle) pas les
-                        plugins tiers ; seuls skills et sous-agents sont gérés.
-  --no-agents           Ne gère pas les sous-agents (dossier agents/) ; seuls
-                        les skills (et, en --global, les plugins) sont gérés.
+  --global              Relie les skills du dépôt dans le hub ~/.agents/skills,
+                        exposé à ~/.claude/skills et ~/.copilot/skills, et les
+                        sous-agents dans ~/.claude/agents. Installe aussi les
+                        skills tierces et les plugins tiers listés.
+  --local [chemin]      Relie les skills du dépôt dans <chemin>/.claude/skills et
+                        <chemin>/.copilot/skills (défaut = cwd). Rien de tiers.
+  --uninstall           Retire ce que ce dépôt a installé. Avec --global/--local.
+  --update              Met à jour skills tierces et plugins tiers listés. Ne
+                        touche à aucun symlink. Une skill apparue dans une source
+                        déclarée est installée ; un plugin absent ne l'est pas.
+  --update-plugins      Alias de --update.
+  --audit-installed     Audite en entier chaque skill tierce et plugin tiers
+                        installé. N'installe rien. Un appel LLM par élément.
+  --reconsider <nom>    Oublie le refus mémorisé de <nom> (skill ou plugin) pour
+                        qu'il soit reproposé. Seul, ne fait que ça.
+  --no-plugins          Ignore les plugins tiers.
+  --no-third-party-skills
+                        Ignore les skills tierces.
+  --no-agents           Ignore les sous-agents (dossier agents/).
+  --no-llm              Audit par filtre statique seul, sans revue LLM.
   -h, --help            Affiche cette aide.
 
-Les sous-agents du dossier agents/ (fichiers .md, Claude Code uniquement) sont
-symlinkés vers ~/.claude/agents (--global) ou <chemin>/.claude/agents (--local),
-sauf avec --no-agents.
+Audit de sécurité : chaque nouvelle version est préparée à part, comparée à la
+version installée, analysée par scripts/audit.sh, puis installée. En cas de
+signalement grave, la question [o/N] est posée. Un non est mémorisé dans
+~/.agents/.audit-refused et vaut tant que le contenu ne change pas. Sans
+terminal, la réponse est non, sans être mémorisée.
 
-En mode --global, installe aussi les plugins tiers listés dans ce script
-(superpowers, figma, …) depuis le marketplace $PLUGIN_MARKETPLACE, via le CLI
-'claude' (scope user). Nécessite 'claude' dans le PATH ; sinon les plugins sont
-ignorés avec un avertissement (les symlinks restent installés). Pour les mettre
-à jour ensuite, sans retoucher aux symlinks : install.sh --update-plugins.
-
-Idempotent : relancer l'installation est sans effet si tout est déjà en place.
-Sûr : ne supprime jamais un fichier ou un symlink pointant ailleurs.
+Plugins : marketplace $PLUGIN_MARKETPLACE, scope user.
+Prérequis : git et node/npx (skills tierces), CLI 'claude' (plugins, revue LLM).
+Redémarrer Claude Code pour appliquer les plugins installés ou mis à jour.
+Idempotent. Ne supprime jamais un fichier ou un symlink pointant ailleurs.
 EOF
 }
 
@@ -69,6 +89,9 @@ ACTION="install"
 LOCAL_PATH=""
 INCLUDE_PLUGINS="yes"
 INCLUDE_AGENTS="yes"
+INCLUDE_TP_SKILLS="yes"
+USE_LLM="yes"
+RECONSIDER=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -90,16 +113,32 @@ while [ $# -gt 0 ]; do
       ACTION="uninstall"
       shift
       ;;
-    --update-plugins)
-      MODE="update-plugins"
+    --update|--update-plugins)
+      MODE="update"
       shift
+      ;;
+    --audit-installed)
+      MODE="audit-installed"
+      shift
+      ;;
+    --reconsider)
+      RECONSIDER="${2:?--reconsider attend un nom}"
+      shift 2
       ;;
     --no-plugins)
       INCLUDE_PLUGINS="no"
       shift
       ;;
+    --no-third-party-skills)
+      INCLUDE_TP_SKILLS="no"
+      shift
+      ;;
     --no-agents)
       INCLUDE_AGENTS="no"
+      shift
+      ;;
+    --no-llm)
+      USE_LLM="no"
       shift
       ;;
     -h|--help)
@@ -114,20 +153,30 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+if [ -n "$RECONSIDER" ]; then
+  forget_refusal "$RECONSIDER"
+  echo "oubli refus de $RECONSIDER : il sera reproposé"
+fi
+
 if [ -z "$MODE" ]; then
-  echo "Erreur : --global, --local ou --update-plugins requis." >&2
+  if [ -n "$RECONSIDER" ]; then exit 0; fi
+  echo "Erreur : --global, --local, --update ou --audit-installed requis." >&2
   usage >&2
   exit 2
 fi
 
-if [ "$MODE" = "update-plugins" ] && { [ "$ACTION" = "uninstall" ] || [ "$INCLUDE_PLUGINS" = "no" ]; }; then
-  echo "Erreur : --update-plugins s'utilise seul (ni --uninstall ni --no-plugins)." >&2
+if { [ "$MODE" = "update" ] || [ "$MODE" = "audit-installed" ]; } && [ "$ACTION" = "uninstall" ]; then
+  echo "Erreur : --$MODE ne se combine pas avec --uninstall." >&2
   exit 2
 fi
 
-# --update-plugins ne touche pas aux skills : pas besoin du dossier source.
-if [ "$MODE" != "update-plugins" ] && [ ! -d "$SKILLS_SRC" ]; then
+if { [ "$MODE" = "global" ] || [ "$MODE" = "local" ]; } && [ ! -d "$SKILLS_SRC" ]; then
   echo "Erreur : dossier source $SKILLS_SRC introuvable." >&2
+  exit 1
+fi
+
+if [ "$MODE" != "local" ] && [ ! -x "$AUDIT" ]; then
+  echo "Erreur : $AUDIT introuvable ; l'audit de sécurité est obligatoire." >&2
   exit 1
 fi
 
@@ -255,6 +304,188 @@ unexpose_hub_from_tool() {
   done
 }
 
+# --- Pipeline d'audit : préparer → comparer → analyser → décider → appliquer → vérifier
+
+N_OK=0
+N_APPLIED=0
+N_REFUSED=0
+N_ERR=0
+STAGE=""
+
+# Crée le dossier de préparation, supprimé à la sortie du script.
+stage_dir() {
+  if [ -z "$STAGE" ]; then
+    STAGE="$(mktemp -d)"
+    trap 'rm -rf "$STAGE"' EXIT
+  fi
+}
+
+# Pose la question o/N. 0 = oui · 1 = non explicite · 2 = pas de terminal.
+# INSTALL_ANSWER (o|n) répond à la place de l'utilisateur : réservé aux tests.
+ask_install() {
+  local answer="${INSTALL_ANSWER:-}"
+  if [ -z "$answer" ]; then
+    if [ ! -t 0 ]; then return 2; fi
+    printf '      Installer quand même ? [o/N] '
+    read -r answer || answer=""
+  fi
+  case "$answer" in
+    o|O|oui|y|Y|yes) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# gate <type> <nom> <préparé> <installé|""> <empreinte>
+# 0 = à appliquer · 1 = déjà à jour · 2 = refusé (maintenant ou auparavant)
+gate() {
+  local kind="$1" name="$2" staged="$3" installed="$4" hash="$5"
+  local since arc=0 qrc=0
+  if since="$(refused_since "$kind" "$name" "$hash")"; then
+    echo "refusé $name (depuis le $since ; --reconsider $name pour revoir)"
+    N_REFUSED=$((N_REFUSED + 1))
+    return 2
+  fi
+  if [ -n "$installed" ] && trees_equal "$staged" "$installed"; then
+    echo "ok    $name"
+    N_OK=$((N_OK + 1))
+    return 1
+  fi
+  local args=("$staged" --name "$kind:$name")
+  if [ -n "$installed" ] && [ -d "$installed" ]; then args+=(--against "$installed"); fi
+  if [ "$USE_LLM" = "no" ]; then args+=(--no-llm); fi
+  "$AUDIT" "${args[@]}" | sed 's/^/      /' || arc=$?
+  if [ "$arc" -eq 0 ]; then return 0; fi
+  ask_install || qrc=$?
+  case "$qrc" in
+    0)
+      echo "      accepté malgré les signalements"
+      return 0 ;;
+    1)
+      record_refusal "$kind" "$name" "$hash"
+      echo "refusé $name (mémorisé)"
+      N_REFUSED=$((N_REFUSED + 1))
+      return 2 ;;
+    *)
+      echo "refusé $name (pas de terminal ; refus non mémorisé)"
+      N_REFUSED=$((N_REFUSED + 1))
+      return 2 ;;
+  esac
+}
+
+# Bilan ; 1 s'il y a au moins un refus ou une erreur.
+summary() {
+  echo "→ bilan : $N_OK à jour · $N_APPLIED installé(s) ou mis à jour · $N_REFUSED refusé(s) · $N_ERR erreur(s)"
+  if [ "$N_REFUSED" -gt 0 ] || [ "$N_ERR" -gt 0 ]; then return 1; fi
+}
+
+# Nom d'une skill : champ name: de son SKILL.md, à défaut le nom du dossier.
+skill_name() {
+  local n
+  n="$(awk '/^name:/ { sub(/^name:[[:space:]]*/, ""); print; exit }' "$1/SKILL.md" | tr -d "\"'")"
+  printf '%s\n' "${n:-$(basename "$1")}"
+}
+
+# Noms des skills installées depuis la source $1, lus dans le verrou skills.sh.
+skills_from_source() {
+  local lock="$HOME/.agents/.skill-lock.json"
+  if [ ! -f "$lock" ]; then return 0; fi
+  node -e '
+    const [lock, src] = process.argv.slice(1);
+    const skills = require(lock).skills || {};
+    for (const [name, s] of Object.entries(skills)) if (s.source === src) console.log(name);
+  ' "$lock" "$1"
+}
+
+# Clone une source déclarée, passe chaque skill au pipeline, installe les
+# acceptées en un seul appel à skills.sh, puis vérifie la concordance.
+sync_skill_source() {
+  local src excl clone dir name installed hash rc
+  read -r src excl <<< "$1"
+  echo "→ skills $src"
+  clone="$STAGE/skills/${src//\//__}"
+  if ! git clone -q --depth 1 "https://github.com/$src.git" "$clone" 2>/dev/null; then
+    echo "warn  $src : clone impossible"
+    N_ERR=$((N_ERR + 1))
+    return 0
+  fi
+  local found=() names=() dirs=()
+  while IFS= read -r dir; do found+=("$dir"); done \
+    < <(find "$clone" -name SKILL.md -not -path '*/.git/*' -exec dirname {} \; | LC_ALL=C sort)
+  if [ ${#found[@]} -eq 0 ]; then
+    echo "warn  $src : aucune skill trouvée"
+    N_ERR=$((N_ERR + 1))
+    return 0
+  fi
+  for dir in "${found[@]}"; do
+    name="$(skill_name "$dir")"
+    case " $excl " in *" -$name "*) echo "exclu $name"; continue ;; esac
+    installed=""
+    if [ -d "$HUB/$name" ]; then installed="$HUB/$name"; fi
+    hash="$(content_hash "$dir")"
+    rc=0
+    gate skill "$name" "$dir" "$installed" "$hash" || rc=$?
+    if [ "$rc" -eq 0 ]; then
+      names+=("$name")
+      dirs+=("$dir")
+    fi
+  done
+  if [ ${#names[@]} -eq 0 ]; then return 0; fi
+  # shellcheck disable=SC2086 # liste d'agents volontairement découpée
+  if ! npx --yes skills add "$src" -g -s "${names[@]}" -a $THIRD_PARTY_SKILL_AGENTS -y </dev/null >/dev/null 2>&1; then
+    echo "warn  $src : échec de npx skills add"
+    N_ERR=$((N_ERR + 1))
+    return 0
+  fi
+  local i
+  for i in "${!names[@]}"; do
+    if trees_equal "${dirs[$i]}" "$HUB/${names[$i]}"; then
+      echo "maj   ${names[$i]}"
+      N_APPLIED=$((N_APPLIED + 1))
+    else
+      echo "warn  ${names[$i]} : l'installé diffère de l'analysé (la source a bougé), retiré"
+      npx --yes skills remove -g -y "${names[$i]}" </dev/null >/dev/null 2>&1 || true
+      N_ERR=$((N_ERR + 1))
+    fi
+  done
+}
+
+# 0 si les outils des skills tierces sont présents ; sinon avertit.
+skills_tools_ok() {
+  local c
+  for c in git node npx; do
+    if ! command -v "$c" >/dev/null 2>&1; then
+      echo "warn  '$c' introuvable, skills tierces ignorées"
+      return 1
+    fi
+  done
+}
+
+sync_skills() {
+  local entry
+  if ! skills_tools_ok; then return 0; fi
+  for entry in "${THIRD_PARTY_SKILLS[@]}"; do sync_skill_source "$entry"; done
+}
+
+# Retire les skills installées depuis chaque source déclarée.
+uninstall_third_party_skills() {
+  local entry src n
+  if ! skills_tools_ok; then return 0; fi
+  for entry in "${THIRD_PARTY_SKILLS[@]}"; do
+    read -r src _ <<< "$entry"
+    local names=()
+    while IFS= read -r n; do names+=("$n"); done < <(skills_from_source "$src")
+    if [ ${#names[@]} -eq 0 ]; then
+      echo "skip  $src (aucune skill installée)"
+      continue
+    fi
+    if npx --yes skills remove -g -y "${names[@]}" </dev/null >/dev/null 2>&1; then
+      echo "rm    $src : ${names[*]}"
+    else
+      echo "warn  $src : échec de npx skills remove"
+    fi
+  done
+}
+
 # Installe les plugins tiers via le CLI 'claude' (scope user, non interactif).
 # Idempotent : le marketplace déjà connu et un plugin déjà installé renvoient
 # une erreur bénigne, absorbée sans faire échouer le script.
@@ -336,25 +567,30 @@ update_plugins() {
 }
 
 case "$MODE:$ACTION" in
-  update-plugins:install)
-    update_plugins
+  update:install)
+    stage_dir
+    if [ "$INCLUDE_TP_SKILLS" = "yes" ]; then sync_skills; fi
+    if [ "$INCLUDE_PLUGINS" = "yes" ]; then update_plugins; fi
+    summary || exit 1
     ;;
 
   global:install)
-    HUB="$HOME/.agents/skills"
     install_skills_into "$HUB"
     expose_hub_to_tool claude
     expose_hub_to_tool copilot
     if [ "$INCLUDE_AGENTS" = "yes" ]; then install_agents_into "$HOME/.claude/agents"; fi
+    stage_dir
+    if [ "$INCLUDE_TP_SKILLS" = "yes" ]; then sync_skills; fi
     if [ "$INCLUDE_PLUGINS" = "yes" ]; then install_plugins; fi
+    summary || exit 1
     ;;
 
   global:uninstall)
-    HUB="$HOME/.agents/skills"
     unexpose_hub_from_tool claude
     unexpose_hub_from_tool copilot
     uninstall_skills_from "$HUB"
     if [ "$INCLUDE_AGENTS" = "yes" ]; then uninstall_agents_from "$HOME/.claude/agents"; fi
+    if [ "$INCLUDE_TP_SKILLS" = "yes" ]; then uninstall_third_party_skills; fi
     if [ "$INCLUDE_PLUGINS" = "yes" ]; then uninstall_plugins; fi
     ;;
 
