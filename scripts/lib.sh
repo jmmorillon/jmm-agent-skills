@@ -5,21 +5,30 @@ REFUSED_FILE="${AUDIT_REFUSED_FILE:-$HOME/.agents/.audit-refused}"
 
 # Liste les fichiers et symlinks de $1 (chemins relatifs, triés). Ignore les
 # artefacts d'exécution : clone git, marqueurs du cache de plugins, bytecode.
-# Seul endroit où cette liste d'exclusions est définie.
+# Seul endroit où cette liste d'exclusions est définie. $2 = --no-node-modules
+# ajoute node_modules (à toute profondeur) à l'exclusion : pour les plugins
+# uniquement, où Claude Code installe lui-même ce dossier dans le cache.
 list_files() {
-  (cd "$1" && find . \( -name .git -o -name .in_use -o -name .orphaned_at \
-      -o -name __pycache__ -o -name .DS_Store \) -prune \
+  local dir="$1" flag="${2:-}"
+  local prune=(-name .git -o -name .in_use -o -name .orphaned_at \
+      -o -name __pycache__ -o -name .DS_Store)
+  if [ "$flag" = "--no-node-modules" ]; then
+    prune+=(-o -name node_modules)
+  fi
+  (cd "$dir" && find . \( "${prune[@]}" \) -prune \
       -o \( -type f -o -type l \) -print) | sed 's#^\./##' | LC_ALL=C sort
 }
 
-# 0 si $1 et $2 contiennent les mêmes fichiers au même contenu.
+# 0 si $1 et $2 contiennent les mêmes fichiers au même contenu. $3, transmis à
+# list_files, voir ci-dessus.
 trees_equal() {
-  if [ ! -d "$1" ] || [ ! -d "$2" ]; then return 1; fi
-  if [ "$(list_files "$1")" != "$(list_files "$2")" ]; then return 1; fi
+  local a="$1" b="$2" flag="${3:-}"
+  if [ ! -d "$a" ] || [ ! -d "$b" ]; then return 1; fi
+  if [ "$(list_files "$a" "$flag")" != "$(list_files "$b" "$flag")" ]; then return 1; fi
   local f
   while IFS= read -r f; do
-    if ! cmp -s "$1/$f" "$2/$f"; then return 1; fi
-  done < <(list_files "$1")
+    if ! cmp -s "$a/$f" "$b/$f"; then return 1; fi
+  done < <(list_files "$a" "$flag")
   return 0
 }
 

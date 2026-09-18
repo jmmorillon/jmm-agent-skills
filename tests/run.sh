@@ -58,6 +58,15 @@ expect 1 "" "content_hash change avec le contenu" -- test "$(content_hash "$T/cl
 expect 0 "" "content_hash fait 16 caractères" -- test "$(content_hash "$T/clean" | tr -d '\n' | wc -c | tr -d ' ')" = 16
 expect 1 "" "content_hash échoue si le dossier manque" -- content_hash "$T/absent"
 
+mk nm-a/file.txt 'contenu\n'
+cp -R "$T/nm-a" "$T/nm-b"
+mk nm-b/node_modules/x/index.js 'module.exports = 1;\n'
+nm_list_has_no_node_modules() { ! list_files "$1" --no-node-modules | grep -q 'node_modules'; }
+
+expect 1 "" "trees_equal signale node_modules sans --no-node-modules" -- trees_equal "$T/nm-a" "$T/nm-b"
+expect 0 "" "trees_equal --no-node-modules ignore node_modules" -- trees_equal "$T/nm-a" "$T/nm-b" --no-node-modules
+expect 0 "" "list_files --no-node-modules omet node_modules" -- nm_list_has_no_node_modules "$T/nm-b"
+
 record_refusal skill tdd aaaa
 expect 0 "$(date +%Y-%m-%d)" "refused_since trouve un refus" -- refused_since skill tdd aaaa
 expect 1 "" "refused_since : autre empreinte" -- refused_since skill tdd bbbb

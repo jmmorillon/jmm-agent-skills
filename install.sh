@@ -350,17 +350,19 @@ ask_install() {
   esac
 }
 
-# gate <type> <nom> <préparé> <installé|""> <empreinte>
+# gate <type> <nom> <préparé> <installé|""> <empreinte> [comparaison trees_equal]
 # 0 = à appliquer · 1 = déjà à jour · 2 = refusé (maintenant ou auparavant)
+# Le 6e argument (ex. --no-node-modules) n'est utilisé que par les plugins ;
+# les skills l'omettent et gardent une comparaison stricte.
 gate() {
-  local kind="$1" name="$2" staged="$3" installed="$4" hash="$5"
+  local kind="$1" name="$2" staged="$3" installed="$4" hash="$5" cmpflag="${6:-}"
   local since arc=0 qrc=0
   if since="$(refused_since "$kind" "$name" "$hash")"; then
     echo "refusé $name (depuis le $since ; --reconsider $name pour revoir)"
     N_REFUSED=$((N_REFUSED + 1))
     return 2
   fi
-  if [ -n "$installed" ] && trees_equal "$staged" "$installed"; then
+  if [ -n "$installed" ] && trees_equal "$staged" "$installed" "$cmpflag"; then
     echo "ok    $name"
     N_OK=$((N_OK + 1))
     return 1
@@ -534,6 +536,26 @@ plugin_install_path() {
   ' "$f" "$1@$PLUGIN_MARKETPLACE_NAME"
 }
 
+# Version installée du plugin au scope user, vide s'il n'est pas installé.
+plugin_version() {
+  local f="$PLUGINS_DIR/installed_plugins.json"
+  if [ ! -f "$f" ]; then return 0; fi
+  node -e '
+    const [file, key] = process.argv.slice(1);
+    const e = ((require(file).plugins || {})[key] || []).find(x => x.scope === "user");
+    if (e) console.log(e.version);
+  ' "$f" "$1@$PLUGIN_MARKETPLACE_NAME"
+}
+
+# --no-node-modules si le préparé $1 n'a lui-même aucun node_modules : Claude
+# Code en installe un dans le cache pour certains plugins (celui du dépôt
+# amont n'en a pas), ce qui ferait toujours échouer trees_equal sans ça.
+plugin_compare_flag() {
+  if [ -z "$(find "$1" -name node_modules -type d -not -path '*/.git/*' 2>/dev/null)" ]; then
+    printf '%s\n' "--no-node-modules"
+  fi
+}
+
 # Prépare la version du marketplace et affiche son dossier. Chemin relatif :
 # le marketplace lui-même. {url, sha} : fetch de ce seul commit dans $STAGE.
 stage_plugin() {
@@ -558,8 +580,8 @@ stage_plugin() {
 
 # Passe un plugin au pipeline. sync_plugin <nom> <install|update>
 sync_plugin() {
-  local name="$1" mode="$2" installed staged hash out rc=0 verb
-  installed="$(plugin_install_path "$name")"
+  local name="$1" mode="$2" installed staged hash cmpflag out rc=0 verb oldver newver
+  installed="$(plugin_install_path "$name")" || installed=""
   if [ "$mode" = "update" ] && [ -z "$installed" ]; then
     echo "warn  $name non installé (not_found) : c'est le rôle de --global"
     return 0
@@ -570,22 +592,33 @@ sync_plugin() {
     return 0
   fi
   hash="$(content_hash "$staged")"
-  gate plugin "$name" "$staged" "$installed" "$hash" || rc=$?
+  cmpflag="$(plugin_compare_flag "$staged")"
+  gate plugin "$name" "$staged" "$installed" "$hash" "$cmpflag" || rc=$?
   if [ "$rc" -ne 0 ]; then return 0; fi
   verb="install"
-  if [ -n "$installed" ]; then verb="update"; fi
+  oldver=""
+  if [ -n "$installed" ]; then
+    verb="update"
+    oldver="$(plugin_version "$name")" || oldver=""
+  fi
   if ! out="$(claude plugin "$verb" "$name@$PLUGIN_MARKETPLACE_NAME" --scope user </dev/null 2>&1)"; then
     echo "warn  $name : échec de claude plugin $verb"
     printf '%s\n' "$out" | head -n 3 | sed 's/^/      /'
     N_ERR=$((N_ERR + 1))
     return 0
   fi
-  installed="$(plugin_install_path "$name")"
-  if [ -n "$installed" ] && trees_equal "$staged" "$installed"; then
-    echo "plug  $name ($verb)"
+  installed="$(plugin_install_path "$name")" || installed=""
+  if [ -n "$installed" ] && trees_equal "$staged" "$installed" "$cmpflag"; then
+    newver="$(plugin_version "$name")" || newver=""
+    if [ "$verb" = "update" ]; then
+      echo "plug  $name ${oldver:-?} → ${newver:-?}"
+    else
+      echo "plug  $name ${newver:-?} (install)"
+    fi
     N_APPLIED=$((N_APPLIED + 1))
   else
     echo "warn  $name : l'installé diffère de l'analysé, plugin désactivé"
+    printf '%s\n' "$out" | tail -n 5 | sed 's/^/      /'
     claude plugin disable "$name@$PLUGIN_MARKETPLACE_NAME" --scope user </dev/null >/dev/null 2>&1 || true
     N_ERR=$((N_ERR + 1))
   fi
@@ -617,7 +650,7 @@ update_plugins() { sync_plugins update; }
 
 # Audit complet de ce qui est déjà installé (état de départ). N'installe rien.
 audit_installed() {
-  local entry src n plugin p i rc flagged=0
+  local entry src n plugin p i rc flagged=0 errors=0
   local targets=() labels=()
   if [ "$INCLUDE_TP_SKILLS" = "yes" ] && command -v node >/dev/null 2>&1; then
     for entry in "${THIRD_PARTY_SKILLS[@]}"; do
@@ -632,7 +665,7 @@ audit_installed() {
   fi
   if [ "$INCLUDE_PLUGINS" = "yes" ] && command -v node >/dev/null 2>&1; then
     for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do
-      p="$(plugin_install_path "$plugin")"
+      p="$(plugin_install_path "$plugin")" || p=""
       if [ -n "$p" ] && [ -d "$p" ]; then
         targets+=("$p")
         labels+=("plugin:$plugin")
@@ -652,10 +685,13 @@ audit_installed() {
     else
       "$AUDIT" "${targets[$i]}" --name "${labels[$i]}" || rc=$?
     fi
-    if [ "$rc" -ne 0 ]; then flagged=$((flagged + 1)); fi
+    case "$rc" in
+      1) flagged=$((flagged + 1)) ;;
+      2) errors=$((errors + 1)) ;;
+    esac
   done
-  echo "→ audit : ${#targets[@]} élément(s) analysé(s), $flagged à revoir"
-  [ "$flagged" -eq 0 ]
+  echo "→ audit : ${#targets[@]} élément(s) analysé(s), $flagged à revoir, $errors erreur(s) d'analyse"
+  [ $((flagged + errors)) -eq 0 ]
 }
 
 # Désinstalle uniquement les plugins listés dans ce script (scope user).
