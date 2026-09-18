@@ -6,3 +6,7 @@ eval_set.json
 
 # OS / editor cruft
 .DS_Store
+
+# Worktrees Claude Code et espace de travail superpowers (SDD)
+.claude/worktrees/
+.superpowers/
