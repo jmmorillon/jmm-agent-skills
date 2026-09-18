@@ -32,6 +32,20 @@ skills de ce dépôt et installe une liste versionnée de plugins tiers. Deux tr
 - Audit périodique en tâche de fond.
 - Garantie de sécurité : l'analyse réduit le risque, elle ne le supprime pas.
 
+## Limites connues
+
+- **`node_modules` de certains plugins échappe au pipeline courant.** Claude
+  Code installe lui-même les dépendances npm de quelques plugins
+  (`chrome-devtools-mcp`, `atlassian`) dans leur cache, après l'installation.
+  Les comparaisons de plugins (contrôle « à jour » et concordance
+  post-installation, cf. Pipeline étapes 2 et 6) passent donc
+  `trees_equal … --no-node-modules` — qui exclut `node_modules` à toute
+  profondeur — quand la source préparée n'en contient elle-même aucun ; les
+  skills restent comparées strictement. Ces dépendances ne sont jamais vues
+  par le pipeline d'installation ou de mise à jour : seul `--audit-installed`
+  les analyse, et lentement (environ 30 000 fichiers pour
+  `chrome-devtools-mcp`).
+
 ## Décisions et leurs raisons
 
 **Matt Pocock via skills.sh, pas via plugin.** `mattpocock-skills` existe dans
@@ -78,9 +92,12 @@ THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
 - Une entrée = une source GitHub `owner/repo`, suivie d'exclusions `-<nom>`.
 - Les exclusions initiales reproduisent l'état actuel de la machine (les trois
   skills « in-progress » apparues en amont après l'installation).
-- `-a claude-code github-copilot` expose **toutes** les skills retenues à
-  Copilot (aujourd'hui `~/.copilot/skills` n'en a que 2 de Matt Pocock). Codex,
-  Cursor et Gemini lisent le hub `~/.agents/skills` directement : inchangés.
+- skills.sh ≥ 1.7 traite `github-copilot` comme un agent « universel » : il
+  n'écrit rien dans `~/.copilot/skills`. Copilot CLI lit désormais
+  `~/.agents/skills` directement, comme Codex, Cursor et Gemini (changelog de
+  skills.sh : « Support `.agents/skills` directory for auto-loading skills »).
+  Seul `-a claude-code` ajoute encore un pointeur, un symlink relatif
+  `~/.claude/skills/<nom>` → le hub.
 - `mattpocock-skills` n'est **pas** ajouté à `THIRD_PARTY_PLUGINS`.
 
 ## Fichiers
@@ -135,6 +152,9 @@ préparer ─▶ comparer ─▶ analyser ─▶ décider ─▶ appliquer ─�
    - identique → `ok`, fin, pas d'analyse ;
    - absent → première installation, analyse **complète** ;
    - différent → analyse du **diff**.
+   - pour un plugin, la comparaison ignore `node_modules` quand le préparé
+     n'en contient lui-même aucun (voir « Limites connues ») ; pour une skill,
+     toujours stricte.
 3. **Analyser** : `scripts/audit.sh <préparé> [--against <installé>] --name <nom>`.
 4. **Décider** :
    - code `0` → accepté ;
@@ -147,10 +167,11 @@ préparer ─▶ comparer ─▶ analyser ─▶ décider ─▶ appliquer ─�
    - skills : un `npx skills add <source> -g -s <acceptées…> -a <agents> -y` par
      source ;
    - plugins : `claude plugin install|update <nom>@claude-plugins-official --scope user`.
-6. **Vérifier la concordance** : comparer l'installé au préparé. Un écart
-   signifie que la source a changé entre l'analyse et l'installation → `warn`,
-   retrait (`npx skills remove -g <nom>` / `claude plugin disable <nom>`), code
-   retour non nul.
+6. **Vérifier la concordance** : comparer l'installé au préparé (même
+   tolérance `node_modules` qu'à l'étape 2 pour un plugin). Un écart signifie
+   que la source a changé entre l'analyse et l'installation → `warn`, retrait
+   (`npx skills remove -g <nom>` / `claude plugin disable <nom>`), code retour
+   non nul.
 
 **Présomption de sûreté pour l'existant.** Un élément installé identique à sa
 source n'est jamais analysé : au premier lancement, les 37 skills et 10 plugins
