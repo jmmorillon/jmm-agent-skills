@@ -32,6 +32,20 @@ skills de ce dépôt et installe une liste versionnée de plugins tiers. Deux tr
 - Audit périodique en tâche de fond.
 - Garantie de sécurité : l'analyse réduit le risque, elle ne le supprime pas.
 
+## Limites connues
+
+- **`node_modules` de certains plugins échappe au pipeline courant.** Claude
+  Code installe lui-même les dépendances npm de quelques plugins
+  (`chrome-devtools-mcp`, `atlassian`) dans leur cache, après l'installation.
+  Les comparaisons de plugins (contrôle « à jour » et concordance
+  post-installation, cf. Pipeline étapes 2 et 6) passent donc
+  `trees_equal … --no-node-modules` — qui exclut `node_modules` à toute
+  profondeur — quand la source préparée n'en contient elle-même aucun ; les
+  skills restent comparées strictement. Ces dépendances ne sont jamais vues
+  par le pipeline d'installation ou de mise à jour : seul `--audit-installed`
+  les analyse, et lentement (environ 30 000 fichiers pour
+  `chrome-devtools-mcp`).
+
 ## Décisions et leurs raisons
 
 **Matt Pocock via skills.sh, pas via plugin.** `mattpocock-skills` existe dans
@@ -78,9 +92,12 @@ THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
 - Une entrée = une source GitHub `owner/repo`, suivie d'exclusions `-<nom>`.
 - Les exclusions initiales reproduisent l'état actuel de la machine (les trois
   skills « in-progress » apparues en amont après l'installation).
-- `-a claude-code github-copilot` expose **toutes** les skills retenues à
-  Copilot (aujourd'hui `~/.copilot/skills` n'en a que 2 de Matt Pocock). Codex,
-  Cursor et Gemini lisent le hub `~/.agents/skills` directement : inchangés.
+- skills.sh ≥ 1.7 traite `github-copilot` comme un agent « universel » : il
+  n'écrit rien dans `~/.copilot/skills`. Copilot CLI lit désormais
+  `~/.agents/skills` directement, comme Codex, Cursor et Gemini (changelog de
+  skills.sh : « Support `.agents/skills` directory for auto-loading skills »).
+  Seul `-a claude-code` ajoute encore un pointeur, un symlink relatif
+  `~/.claude/skills/<nom>` → le hub.
 - `mattpocock-skills` n'est **pas** ajouté à `THIRD_PARTY_PLUGINS`.
 
 ## Fichiers
@@ -91,7 +108,8 @@ THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
 | `scripts/audit.sh` | Analyse seule, sans interaction. Utilisable en dehors d'`install.sh`. |
 | `scripts/audit-prompt.md` | Prompt de la revue LLM, versionné. |
 | `scripts/audit-patterns.txt` | Motifs du filtre statique, un par ligne avec sa gravité. |
-| `tests/run.sh`, `tests/audit/fixtures/` | Tests d'`audit.sh`. |
+| `scripts/lib.sh` | Primitives partagées : liste de fichiers, comparaison d'arbres, empreinte, refus. |
+| `tests/run.sh` | Tests de `lib.sh` et d'`audit.sh` ; génère ses fixtures dans un dossier temporaire. |
 
 **Dépendances** : `git`, `node`/`npx` (déjà requis par skills.sh ; `node -e`
 lit le JSON imbriqué des `marketplace.json` et `installed_plugins.json`, là où
@@ -104,7 +122,8 @@ la revue LLM ; absent, seul le filtre statique tourne, avec un avertissement.
 | --- | --- |
 | `--global` | Comme aujourd'hui, plus les skills tierces ; tout passe par le pipeline. |
 | `--global --uninstall` | Retire aussi les skills tierces listées (`npx skills remove -g`). |
-| `--update` | Met à jour plugins et skills tierces listés, via le pipeline. Ne touche à aucun symlink. N'installe pas un élément absent (rôle de `--global`). |
+| `--update` | Met à jour plugins et skills tierces listés, via le pipeline. Ne touche à aucun symlink. Une skill apparue dans une source déclarée est installée (c'est le sens de « source entière moins exclusions ») ; un plugin listé mais absent ne l'est pas (rôle de `--global`). Requiert le dépôt (`scripts/audit.sh`). |
+| `--no-llm` | Passe `--no-llm` à `audit.sh` : filtre statique seul. |
 | `--update-plugins` | Alias conservé de `--update`. |
 | `--reconsider <nom>` | Efface le refus mémorisé de `<nom>`, puis le repropose au fil du mode choisi. |
 | `--audit-installed` | Lance `audit.sh` en analyse complète sur chaque plugin et skill tierce installés (audit de départ). Aucune installation. |
@@ -125,7 +144,13 @@ préparer ─▶ comparer ─▶ analyser ─▶ décider ─▶ appliquer ─�
    - _plugin_ : `claude plugin marketplace update`, puis résolution de la
      `source` de l'entrée dans `marketplace.json`. Chemin relatif → pris dans le
      marketplace cloné ; `{url, sha}` → `git clone` puis `checkout <sha>`. Toute
-     autre forme → erreur pour cet élément.
+     autre forme → erreur pour cet élément. Une entrée qui déclare elle-même
+     des composants (`hooks`, `mcpServers`, `lspServers`, `commands`, `agents`,
+     `skills`) → erreur aussi : ce contenu vit dans `marketplace.json`, jamais
+     préparé ni haché, donc jamais audité.
+   - _skill_ : une skill homonyme d'une skill de ce dépôt (le hub pointe vers
+     `skills/`) → `warn`, ignorée : jamais comparée à la nôtre ni écrasée. Le
+     nom est lu dans le seul frontmatter du `SKILL.md`.
    - Calcul de l'**empreinte** (voir « Mémoire des refus »). Si elle figure
      parmi les refus, l'élément s'arrête ici : `refusé  <nom> (depuis le <date>)`.
 2. **Comparer** avec l'installé — `~/.agents/skills/<nom>`, ou l'`installPath`
@@ -133,22 +158,28 @@ préparer ─▶ comparer ─▶ analyser ─▶ décider ─▶ appliquer ─�
    - identique → `ok`, fin, pas d'analyse ;
    - absent → première installation, analyse **complète** ;
    - différent → analyse du **diff**.
+   - pour un plugin, la comparaison ignore `node_modules` quand le préparé
+     n'en contient lui-même aucun (voir « Limites connues ») ; pour une skill,
+     toujours stricte.
 3. **Analyser** : `scripts/audit.sh <préparé> [--against <installé>] --name <nom>`.
 4. **Décider** :
    - code `0` → accepté ;
    - code `1` ou `2` → rapport affiché, puis `Installer quand même ? [o/N]` lu
-     sur `/dev/tty`. Sans terminal, la réponse est non.
+     sur stdin si stdin est un terminal (`[ -t 0 ]`). Sinon la réponse est non. La variable `INSTALL_ANSWER=o|n`, réservée aux tests, répond à la place et compte comme une réponse explicite.
    - Un non **explicite** est mémorisé ; un non faute de terminal ne l'est pas,
      pour qu'une exécution non interactive ne décide jamais à la place de
      l'utilisateur.
 5. **Appliquer**, pour les seuls éléments acceptés :
    - skills : un `npx skills add <source> -g -s <acceptées…> -a <agents> -y` par
-     source ;
+     source, le CLI épinglé (`SKILLS_CLI="skills@1.7.0"`, monté délibérément) ;
    - plugins : `claude plugin install|update <nom>@claude-plugins-official --scope user`.
-6. **Vérifier la concordance** : comparer l'installé au préparé. Un écart
-   signifie que la source a changé entre l'analyse et l'installation → `warn`,
-   retrait (`npx skills remove -g <nom>` / `claude plugin disable <nom>`), code
-   retour non nul.
+6. **Vérifier la concordance** : comparer l'installé au préparé (même
+   tolérance `node_modules` qu'à l'étape 2 pour un plugin). Un écart signifie
+   que la source a changé entre l'analyse et l'installation → `warn`, retrait
+   (`npx skills remove -g <nom>` / `claude plugin uninstall <nom> --scope user`),
+   code retour non nul. Un plugin est désinstallé, pas désactivé : désactivé, il
+   resterait en cache et passerait pour « à jour » au lancement suivant sans
+   avoir été audité.
 
 **Présomption de sûreté pour l'existant.** Un élément installé identique à sa
 source n'est jamais analysé : au premier lancement, les 37 skills et 10 plugins
@@ -165,10 +196,13 @@ Code retour non nul s'il y a au moins un refus ou une erreur.
 
 - Fichier local `~/.agents/.audit-refused`, non versionné. Une ligne par refus :
   `<type>:<nom> <empreinte> <date AAAA-MM-JJ>`, `<type>` ∈ `skill`, `plugin`.
-- L'empreinte identifie le **contenu**, pas le numéro de version :
-  - skill → hash d'arbre git du dossier (`git rev-parse HEAD:<chemin>`) ;
-  - plugin `{url, sha}` → hash d'arbre de ce commit (`git rev-parse <sha>^{tree}`) ;
-  - plugin en chemin relatif → hash d'arbre du sous-dossier dans le marketplace.
+- L'empreinte identifie le **contenu**, pas le numéro de version : sha256 de la
+  liste triée des fichiers et de leurs contenus (pour un symlink, le texte de
+  sa cible, jamais le fichier pointé), hors artefacts d'exécution
+  (`.git`, `.in_use`, `.orphaned_at`, `__pycache__`, `.DS_Store`), tronqué à 16
+  caractères. Une seule méthode pour tout : le marketplace de plugins n'est pas
+  un dépôt git (il est téléchargé, cf. `.gcs-sha`), un hash d'arbre git n'y est
+  pas disponible.
 - Une empreinte différente (la source a changé) relance le pipeline normal.
 - Un nouveau refus pour le même élément remplace la ligne précédente.
 - `--reconsider <nom>` supprime la ligne de `<nom>`.
@@ -184,7 +218,19 @@ l'analyse. Un `2` déclenche aussi la question : une analyse qui échoue ne vaut
 jamais approbation. Rapport sur stdout ; aucune interaction.
 
 **Périmètre** : fichiers ajoutés ou modifiés par rapport à `--against` (tout le
-dossier sans `--against`). Les fichiers binaires sont listés comme tels, non lus.
+dossier sans `--against`), comparés comme dans `trees_equal`.
+
+- **Symlinks** : jamais suivis, ni pour comparer, ni pour hacher, ni pour lire ;
+  seul le texte de leur cible compte. Un lien à cible absolue, qui remonte
+  au-dessus de la racine, ou dont le chemin réel se résout hors de l'arbre (ou
+  ne se résout pas) est **grave** ; un lien qui reste dans l'arbre est une note.
+- **Binaires** (octet NUL) : non lus. Tolérés en note s'ils portent une
+  extension média connue (`png jpg jpeg gif webp ico bmp svg pdf woff woff2 ttf
+  otf eot mp3 mp4 wav`) et ne sont pas exécutables ; sinon **graves** — un octet
+  NUL ne doit pas soustraire un script à l'analyse.
+- Les fichiers texte sont passés aux outils par lots (`xargs -0`) : un arbre
+  immense ne peut pas faire échouer le filtre en silence (« Argument list too
+  long »). Un lot en erreur rend l'analyse incomplète (code `2`).
 
 ### Filtre statique
 
@@ -201,18 +247,26 @@ lignes `#` ignorées. Gravités :
 - **à noter** (affiché, sans question) : nouveau fichier exécutable,
   `allowed-tools` dans un `SKILL.md`, URL vers un domaine, `rm -rf`, `sudo`.
 
-En plus des motifs, deux contrôles structurels, **graves** : apparition d'un
-hook (`hooks/hooks.json`, clé `"hooks"` dans `plugin.json`) ou d'un serveur MCP
-(`.mcp.json`, clé `mcpServers`) — ils s'exécutent sans invocation explicite.
+En plus des motifs, des contrôles structurels, **graves**, pour tout ce qui
+s'exécute sans invocation explicite : hook (`hooks/hooks.json`, clé `"hooks"`
+dans `plugin.json`, clé `hooks:` dans le frontmatter d'un Markdown — skill,
+agent, commande), serveur MCP (`.mcp.json`, clé `mcpServers`), serveur LSP
+(`.lsp.json`, clé `lspServers`), script npm d'installation (`preinstall`,
+`install`, `postinstall`, `prepare` dans un `package.json`).
 
 ### Revue LLM
 
 Lancée si le périmètre n'est pas vide, sauf `--no-llm` ou `claude` absent.
 
-- `claude -p --allowedTools ""` : **aucun outil**. Le prompt
-  (`audit-prompt.md`) présente le diff comme des **données à auditer**, jamais
-  comme des consignes, délimitées sans ambiguïté — une skill malveillante ne
-  doit pas pouvoir piloter son auditeur.
+- `claude -p --tools "" --strict-mcp-config --mcp-config '{"mcpServers":{}}'
+  --disallowedTools 'mcp__*' --setting-sources "" --disable-slash-commands
+  --no-session-persistence`, lancé depuis un dossier temporaire vide : **aucun
+  outil**, aucun serveur MCP, aucun réglage utilisateur/projet/local (donc ni
+  hooks ni plugins activés), aucune skill. Le prompt (`audit-prompt.md`)
+  présente l'élément audité comme des **données**, jamais comme des consignes :
+  son nom, les signalements statiques (dont les chemins viennent de l'élément)
+  et le diff sont tous entre `<<<DIFF_DEBUT` et `DIFF_FIN>>>` — une skill
+  malveillante ne doit pas pouvoir piloter son auditeur.
 - Cible ce que le grep ne voit pas : injection de prompt en prose (« ignore les
   instructions précédentes », « ne le dis pas à l'utilisateur »), consignes qui
   poussent l'agent à lire des secrets, à désactiver des garde-fous ou à joindre
@@ -220,16 +274,17 @@ Lancée si le périmètre n'est pas vide, sauf `--no-llm` ou `claude` absent.
   corps fait.
 - Reçoit aussi les signalements statiques, pour les confirmer ou les écarter en
   prose (sans pouvoir les annuler : un grave statique reste grave).
-- Sortie imposée : première ligne `VERDICT: ok` ou `VERDICT: suspect`, puis des
-  constats `fichier:ligne — raison`. Le script ne lit que la ligne `VERDICT`.
+- Sortie imposée : une ligne `VERDICT: ok` ou `VERDICT: suspect` (la première
+  trouvée fait foi), puis des constats `fichier:ligne — raison`. Le script ne lit que la ligne `VERDICT`.
   `suspect` = grave. Ligne absente ou illisible = code `2`.
-- Au-delà de ~200 Ko, le diff est tronqué et le rapport le signale.
+- Au-delà de ~200 Ko, le diff est tronqué : la revue est partielle, donc code
+  `2` (analyse incomplète, question posée) même si le verdict est `ok`.
 
 ## Livrables
 
 - `install.sh` modifié (configuration, pipeline, options, `usage()`).
-- `scripts/audit.sh`, `scripts/audit-prompt.md`, `scripts/audit-patterns.txt`.
-- `tests/run.sh` et `tests/audit/fixtures/`.
+- `scripts/audit.sh`, `scripts/audit-prompt.md`, `scripts/audit-patterns.txt`, `scripts/lib.sh`.
+- `tests/run.sh`.
 - `CLAUDE.md` : section « Skills tierces et audit de sécurité » — format de
   `THIRD_PARTY_SKILLS`, pipeline, choix skills.sh plutôt que plugin pour Matt
   Pocock (et le risque de doublon), présomption de sûreté, fichier de refus.
@@ -237,7 +292,7 @@ Lancée si le périmètre n'est pas vide, sauf `--no-llm` ou `claude` absent.
 ## Vérification
 
 **`tests/run.sh`** (bash pur) vérifie les codes retour d'`audit.sh` sur des
-fixtures minimales : skill propre (`0`), `curl | sh` (`1`), caractère invisible
+fixtures minimales générées à l'exécution : skill propre (`0`), `curl | sh` (`1`), caractère invisible
 (`1`), hook ajouté (`1`), couple avant/après où seul l'ajout est signalé
 (`--against`). Par défaut en `--no-llm`, déterministe et gratuit ; `--with-llm`
 ajoute une fixture d'injection en prose attendue en `1`.
