@@ -1,0 +1,12 @@
+# gravité	regex ERE (grep -E)	libellé — lignes # et vides ignorées.
+# grave : déclenche la question [o/N]. note : affiché, sans question.
+grave	(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z)?sh([^[:alnum:]_]|$)	téléchargement exécuté (curl|wget … | sh)
+grave	base64[[:space:]]+(-d|-D|--decode)[^|]*\|[[:space:]]*(ba|z)?sh	contenu encodé exécuté (base64 -d | sh)
+grave	(^|[^[:alnum:]_.])eval[[:space:]]*[("$`]	exécution dynamique (eval)
+grave	(~|\$HOME|\$\{HOME\})/\.(ssh|aws|gnupg)|id_(rsa|ed25519|ecdsa)	accès à des secrets (clés SSH, AWS, GPG)
+grave	security[[:space:]]+find-(generic|internet)-password	lecture du trousseau macOS
+grave	(cat|less|head|tail|source|grep|cp)[[:space:]]+[^[:space:];|]*\.env([^[:alnum:]_.]|$)	lecture d'un fichier .env
+grave	curl[^|]*[[:space:]](-d|--data|--data-binary|--data-raw|-F|--form|-T|--upload-file)[[:space:]]	envoi de données par curl (exfiltration ?)
+note	allowed-tools:	allowed-tools déclaré (outils pré-autorisés)
+note	rm[[:space:]]+-[a-zA-Z]*([rR]f|f[rR])	suppression récursive (rm -rf)
+note	(^|[^[:alnum:]_])sudo[[:space:]]	élévation de privilèges (sudo)
