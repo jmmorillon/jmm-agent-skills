@@ -27,18 +27,34 @@ trees_equal() {
   if [ "$(list_files "$a" "$flag")" != "$(list_files "$b" "$flag")" ]; then return 1; fi
   local f
   while IFS= read -r f; do
-    if ! cmp -s "$a/$f" "$b/$f"; then return 1; fi
+    if ! same_entry "$a/$f" "$b/$f"; then return 1; fi
   done < <(list_files "$a" "$flag")
   return 0
 }
 
+# 0 si les entrées $1 et $2 sont identiques. Un symlink se compare par le texte
+# de sa cible, jamais en le suivant : suivre ferait lire un fichier hors de
+# l'arbre, et deux liens au texte différent pourraient sembler égaux.
+same_entry() {
+  if [ -L "$1" ] || [ -L "$2" ]; then
+    [ -L "$1" ] && [ -L "$2" ] && [ "$(readlink "$1")" = "$(readlink "$2")" ]
+    return
+  fi
+  cmp -s "$1" "$2"
+}
+
 # Empreinte du contenu de $1 : sha256 des chemins et contenus, 16 caractères.
+# Un symlink compte pour le texte de sa cible, jamais pour le fichier pointé.
 content_hash() {
   if [ ! -d "$1" ]; then return 1; fi
   local f
   list_files "$1" | while IFS= read -r f; do
     printf '%s\n' "$f"
-    shasum -a 256 < "$1/$f" 2>/dev/null || echo "illisible"
+    if [ -L "$1/$f" ]; then
+      printf 'lien %s\n' "$(readlink "$1/$f")" | shasum -a 256
+    else
+      shasum -a 256 < "$1/$f" 2>/dev/null || echo "illisible"
+    fi
   done | shasum -a 256 | cut -c1-16
 }
 
