@@ -56,6 +56,7 @@ expect 1 "" "trees_equal échoue si un dossier manque" -- trees_equal "$T/clean"
 expect 0 "" "content_hash ignore les artefacts" -- test "$(content_hash "$T/clean")" = "$(content_hash "$T/clean-copy")"
 expect 1 "" "content_hash change avec le contenu" -- test "$(content_hash "$T/clean")" = "$(content_hash "$T/clean-changed")"
 expect 0 "" "content_hash fait 16 caractères" -- test "$(content_hash "$T/clean" | tr -d '\n' | wc -c | tr -d ' ')" = 16
+expect 1 "" "content_hash échoue si le dossier manque" -- content_hash "$T/absent"
 
 record_refusal skill tdd aaaa
 expect 0 "$(date +%Y-%m-%d)" "refused_since trouve un refus" -- refused_since skill tdd aaaa

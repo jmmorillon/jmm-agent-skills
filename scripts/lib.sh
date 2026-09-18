@@ -25,6 +25,7 @@ trees_equal() {
 
 # Empreinte du contenu de $1 : sha256 des chemins et contenus, 16 caractères.
 content_hash() {
+  if [ ! -d "$1" ]; then return 1; fi
   local f
   list_files "$1" | while IFS= read -r f; do
     printf '%s\n' "$f"
