@@ -86,7 +86,7 @@ THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
 ## Fichiers
 
 | Fichier | Rôle |
-|---|---|
+| --- | --- |
 | `install.sh` | Orchestration : liste des skills tierces, pipeline, décisions, options. |
 | `scripts/audit.sh` | Analyse seule, sans interaction. Utilisable en dehors d'`install.sh`. |
 | `scripts/audit-prompt.md` | Prompt de la revue LLM, versionné. |
@@ -101,7 +101,7 @@ la revue LLM ; absent, seul le filtre statique tourne, avec un avertissement.
 ## Options d'`install.sh`
 
 | Option | Effet |
-|---|---|
+| --- | --- |
 | `--global` | Comme aujourd'hui, plus les skills tierces ; tout passe par le pipeline. |
 | `--global --uninstall` | Retire aussi les skills tierces listées (`npx skills remove -g`). |
 | `--update` | Met à jour plugins et skills tierces listés, via le pipeline. Ne touche à aucun symlink. N'installe pas un élément absent (rôle de `--global`). |
@@ -115,14 +115,14 @@ la revue LLM ; absent, seul le filtre statique tourne, avec un avertissement.
 
 Commun à l'installation et à la mise à jour, élément par élément :
 
-```
+```text
 préparer ─▶ comparer ─▶ analyser ─▶ décider ─▶ appliquer ─▶ vérifier
 ```
 
 1. **Préparer**, dans un `mktemp -d` nettoyé par `trap` à la sortie :
-   - *skill* : `git clone --depth 1` de la source (un seul clone par source) ;
+   - _skill_ : `git clone --depth 1` de la source (un seul clone par source) ;
      découverte des dossiers contenant un `SKILL.md`, moins les exclusions.
-   - *plugin* : `claude plugin marketplace update`, puis résolution de la
+   - _plugin_ : `claude plugin marketplace update`, puis résolution de la
      `source` de l'entrée dans `marketplace.json`. Chemin relatif → pris dans le
      marketplace cloné ; `{url, sha}` → `git clone` puis `checkout <sha>`. Toute
      autre forme → erreur pour cet élément.
@@ -175,7 +175,7 @@ Code retour non nul s'il y a au moins un refus ou une erreur.
 
 ## `scripts/audit.sh`
 
-```
+```text
 scripts/audit.sh <dossier> [--against <dossier_ancien>] [--name <label>] [--no-llm]
 ```
 
