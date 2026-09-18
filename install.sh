@@ -26,6 +26,7 @@ THIRD_PARTY_PLUGINS=(
 usage() {
   cat <<EOF
 Usage: install.sh (--global | --local [chemin]) [--uninstall]
+       install.sh --update-plugins
 
 Installe (ou désinstalle) les skills de ce dépôt par symlinks.
 
@@ -38,6 +39,10 @@ Installe (ou désinstalle) les skills de ce dépôt par symlinks.
                         pour limiter une skill à un projet.
   --uninstall           Retire les symlinks créés par ce dépôt. À combiner
                         avec --global ou --local [chemin].
+  --update-plugins      Rafraîchit le marketplace puis met à jour chaque plugin
+                        tiers listé dans ce script (scope user). Ne touche à
+                        aucun symlink ; s'utilise seul. Redémarrer Claude Code
+                        pour appliquer les mises à jour.
   --no-plugins          En mode --global, n'installe (ni ne désinstalle) pas les
                         plugins tiers ; seuls skills et sous-agents sont gérés.
   --no-agents           Ne gère pas les sous-agents (dossier agents/) ; seuls
@@ -51,7 +56,8 @@ sauf avec --no-agents.
 En mode --global, installe aussi les plugins tiers listés dans ce script
 (superpowers, figma, …) depuis le marketplace $PLUGIN_MARKETPLACE, via le CLI
 'claude' (scope user). Nécessite 'claude' dans le PATH ; sinon les plugins sont
-ignorés avec un avertissement (les symlinks restent installés).
+ignorés avec un avertissement (les symlinks restent installés). Pour les mettre
+à jour ensuite, sans retoucher aux symlinks : install.sh --update-plugins.
 
 Idempotent : relancer l'installation est sans effet si tout est déjà en place.
 Sûr : ne supprime jamais un fichier ou un symlink pointant ailleurs.
@@ -84,6 +90,10 @@ while [ $# -gt 0 ]; do
       ACTION="uninstall"
       shift
       ;;
+    --update-plugins)
+      MODE="update-plugins"
+      shift
+      ;;
     --no-plugins)
       INCLUDE_PLUGINS="no"
       shift
@@ -105,12 +115,18 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$MODE" ]; then
-  echo "Erreur : --global ou --local requis." >&2
+  echo "Erreur : --global, --local ou --update-plugins requis." >&2
   usage >&2
   exit 2
 fi
 
-if [ ! -d "$SKILLS_SRC" ]; then
+if [ "$MODE" = "update-plugins" ] && { [ "$ACTION" = "uninstall" ] || [ "$INCLUDE_PLUGINS" = "no" ]; }; then
+  echo "Erreur : --update-plugins s'utilise seul (ni --uninstall ni --no-plugins)." >&2
+  exit 2
+fi
+
+# --update-plugins ne touche pas aux skills : pas besoin du dossier source.
+if [ "$MODE" != "update-plugins" ] && [ ! -d "$SKILLS_SRC" ]; then
   echo "Erreur : dossier source $SKILLS_SRC introuvable." >&2
   exit 1
 fi
@@ -278,7 +294,52 @@ uninstall_plugins() {
   done
 }
 
+# Extrait la valeur texte du champ $2 dans la ligne JSON $1. Suffisant pour les
+# champs plats de 'claude plugin update --json' ; pas un parseur JSON.
+json_field() {
+  printf '%s' "$1" | sed -n "s/.*\"$2\":\"\([^\"]*\)\".*/\1/p"
+}
+
+# Rafraîchit le marketplace puis met à jour chaque plugin listé (scope user).
+# N'installe rien : un plugin absent est signalé, pas ajouté — c'est le rôle de
+# --global. Le redémarrage de Claude Code applique les mises à jour.
+update_plugins() {
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "Erreur : CLI 'claude' introuvable, plugins non mis à jour." >&2
+    exit 1
+  fi
+
+  echo "→ marketplace $PLUGIN_MARKETPLACE_NAME"
+  if ! claude plugin marketplace update "$PLUGIN_MARKETPLACE_NAME" >/dev/null 2>&1; then
+    echo "warn  marketplace non rafraîchi, mise à jour depuis le cache local"
+  fi
+
+  local plugin out updated=0
+  for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do
+    if out="$(claude plugin update "${plugin}@${PLUGIN_MARKETPLACE_NAME}" --scope user --json 2>/dev/null)"; then
+      if [ "$(json_field "$out" updateOutcome)" = "up_to_date" ]; then
+        echo "ok    ${plugin} ($(json_field "$out" newVersion))"
+      else
+        echo "maj   ${plugin} $(json_field "$out" oldVersion) → $(json_field "$out" newVersion)"
+        updated=$((updated + 1))
+      fi
+    else
+      echo "warn  ${plugin} non mis à jour ($(json_field "$out" failureCode))"
+    fi
+  done
+
+  if [ "$updated" -gt 0 ]; then
+    echo "→ $updated plugin(s) mis à jour : redémarre Claude Code pour appliquer."
+  else
+    echo "→ tous les plugins sont déjà à jour."
+  fi
+}
+
 case "$MODE:$ACTION" in
+  update-plugins:install)
+    update_plugins
+    ;;
+
   global:install)
     HUB="$HOME/.agents/skills"
     install_skills_into "$HUB"

@@ -27,12 +27,14 @@ En mode `--global`, le script installe aussi une liste versionnée de plugins Cl
 ```bash
 ./install.sh --global               # skills perso + plugins tiers
 ./install.sh --global --no-plugins  # skills perso uniquement
+./install.sh --update-plugins       # met à jour les plugins déjà installés
 ```
 
 La liste (`superpowers`, `figma`, `frontend-design`, `code-review`, `context7`, `skill-creator`, `playwright`, `security-guidance`, `atlassian`, `chrome-devtools-mcp`) est déclarée en haut de `install.sh` : édite le tableau `THIRD_PARTY_PLUGINS` pour en ajouter ou en retirer.
 
 - Nécessite le CLI `claude` dans le `PATH` ; s'il est absent, les plugins sont ignorés (avec un avertissement) et les symlinks de skills s'installent quand même.
 - Les plugins étant en scope `user`, ils ne concernent que `--global` — le mode `--local` ne les touche jamais.
+- `--update-plugins` s'utilise seul : il rafraîchit le marketplace puis met à jour chaque plugin de la liste, sans toucher aux symlinks. Il met à jour seulement — un plugin listé mais absent est signalé, pas installé. Redémarre Claude Code pour appliquer les mises à jour.
 - Seule la *liste* est versionnée ; le cache `~/.claude/plugins/` est reconstruit à partir d'elle et n'a pas à être commité.
 
 ### Sous-agents

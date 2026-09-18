@@ -1,5 +1,12 @@
 # Devlog
 
+## 2026-09-18 — Mise à jour des plugins tiers
+
+- **Nouveau mode `install.sh --update-plugins`.** Le bootstrap savait installer et désinstaller les plugins tiers, pas les mettre à jour. Le mode rafraîchit le marketplace puis boucle `claude plugin update <nom>@claude-plugins-official --scope user --json` sur la liste : le CLI ne prend qu'un plugin à la fois, il n'y a pas de `--all`. Il met à jour seulement — un plugin listé mais non installé est signalé, jamais ajouté, car installer reste le rôle de `--global`.
+- **Mode autonome plutôt que flag de `--global`.** Il ne se combine ni avec `--global`/`--local` ni avec `--uninstall`/`--no-plugins` (exit 2), ne touche à aucun symlink, et n'exige pas le dossier `skills/` — le script reste donc exécutable depuis une copie isolée.
+- **Sortie lue via un helper `sed`, pas `jq`** : `json_field` extrait les champs plats de la ligne `--json` (`updateOutcome`, `oldVersion`, `newVersion`, `failureCode`) pour éviter une dépendance de plus. Ce n'est pas un parseur JSON — il casse sur une valeur contenant un guillemet échappé, d'où le choix de rapporter `failureCode` plutôt que `message`.
+- **Vérifié** : syntaxe, les deux combinaisons rejetées, la branche d'échec (faux plugin, `not_found`, sans interrompre la boucle) et un run réel — les 10 plugins étaient déjà à jour. La branche « maj » n'a pas pu être exercée, faute de plugin en retard.
+
 ## 2026-09-14 — Journal de projet et rédaction de PR
 
 - **Nouveau skill `add-journal`.** Consigne l'avancement d'un projet dans sa fiche du vault Obsidian. Plutôt que d'inventer une section, il réutilise `## Track Log`, déjà présente dans le Modèle Projet du vault et dans 28 fiches — mais tenue dans quatre formats différents. Arbitrage : un format imposé pour les nouvelles entrées (`### AAAA-MM-JJ` + 1 à 6 puces, la plus récente en haut), sans jamais reformater l'existant. Le skill lit le Modèle Projet dans le vault au moment de créer une fiche au lieu de le recopier : pas de gabarit dupliqué à tenir synchronisé, contrairement au couple `add-knowledge` / `check-knowledge`.

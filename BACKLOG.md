@@ -5,6 +5,7 @@
 - [ ] Optimiser la description de `project-docs-sync` pour le déclenchement (loop skill-creator `run_loop.py`, ~5 itérations) si le skill sur- ou sous-déclenche à l'usage.
 - [ ] Rejouer `/check-knowledge` **un autre jour** que celui de la capture — c'est le seul cas qui expose une régression sur la date du jour, et la fumigation initiale est tombée le jour des exemples.
 - [ ] Éprouver `/add-knowledge` sur un sujet couvert par une note préexistante, pour vérifier que la clôture d'écriture tient.
+- [ ] Vérifier la branche « maj » de `--update-plugins` (affichage `ancienne → nouvelle`) à la prochaine sortie de version d'un plugin : au moment de l'écriture, les 10 plugins étaient déjà à jour, elle n'a pas pu être exercée.
 - [ ] Décider si le dépôt devient un plugin `jmm:` (namespace/préfixe des skills) ou reste sur le mécanisme de symlinks — arbitrage laissé ouvert le 2026-07-22.
 
 ## En cours
@@ -12,6 +13,7 @@
 - [ ] Éprouver `/add-journal` en session réelle, en particulier son déclenchement : l'optimisation de description par `run_loop.py` n'a rien pu départager. Reprendre la description à partir des formulations qui ne déclenchent pas.
 
 ## Fait
+- [x] `install.sh --update-plugins` : mise à jour des plugins tiers déjà installés.
 - [x] Créer le skill `add-journal` et l'évaluer sur des copies du vault (3 cas, avec et sans skill).
 - [x] Créer le skill `writing-pr`.
 - [x] Créer les skills `add-knowledge` et `check-knowledge` (spec et plan sous `docs/superpowers/`).

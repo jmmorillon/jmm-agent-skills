@@ -23,6 +23,8 @@ The installer is symlink-based and idempotent. Two modes:
 
 - Requires the `claude` CLI on `PATH`; if absent, plugins are skipped with a warning and the skill symlinks still install.
 - `--no-plugins` limits `--global` to skill symlinks only (no plugin install/uninstall).
+- `./install.sh --update-plugins` is a third, standalone mode (no `--global`/`--local`, and it rejects `--uninstall`/`--no-plugins`): it refreshes the marketplace (`claude plugin marketplace update`) then runs `claude plugin update <name>@claude-plugins-official --scope user --json` on each listed plugin. It touches no symlink and needs no `skills/` directory, so the script can be run from a copy anywhere. It updates only — a plugin in the list but not installed is reported as `warn … (not_found)`, never installed; installing is `--global`'s job. `claude plugin update` takes one plugin at a time (there is no `--all`), hence the loop. Claude Code must be restarted for updates to apply.
+- Parsing is done with a `json_field` sed helper, not `jq` (no new dependency). It reads flat string fields of the `--json` line — `updateOutcome` (`up_to_date` vs updated), `oldVersion`, `newVersion`, `failureCode`. It is not a JSON parser: it breaks on a value containing an escaped quote, which is why failures report `failureCode` and not `message` (whose text embeds `\"`).
 - Idempotent: re-adding a known marketplace or re-installing a present plugin returns a benign error that is absorbed (`|| true` / `if…then`), so re-running is safe. Because `set -e` is active, gate the calls with `if [ … ]; then … fi`, never `[ … ] && …` (a false test would exit the script).
 - Only the *list* is version-controlled; the `~/.claude/plugins/` cache is rebuilt from it and must not be committed.
 
