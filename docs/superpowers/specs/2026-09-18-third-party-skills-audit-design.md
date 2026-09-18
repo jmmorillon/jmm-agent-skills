@@ -91,7 +91,8 @@ THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
 | `scripts/audit.sh` | Analyse seule, sans interaction. Utilisable en dehors d'`install.sh`. |
 | `scripts/audit-prompt.md` | Prompt de la revue LLM, versionné. |
 | `scripts/audit-patterns.txt` | Motifs du filtre statique, un par ligne avec sa gravité. |
-| `tests/run.sh`, `tests/audit/fixtures/` | Tests d'`audit.sh`. |
+| `scripts/lib.sh` | Primitives partagées : liste de fichiers, comparaison d'arbres, empreinte, refus. |
+| `tests/run.sh` | Tests de `lib.sh` et d'`audit.sh` ; génère ses fixtures dans un dossier temporaire. |
 
 **Dépendances** : `git`, `node`/`npx` (déjà requis par skills.sh ; `node -e`
 lit le JSON imbriqué des `marketplace.json` et `installed_plugins.json`, là où
@@ -104,7 +105,8 @@ la revue LLM ; absent, seul le filtre statique tourne, avec un avertissement.
 | --- | --- |
 | `--global` | Comme aujourd'hui, plus les skills tierces ; tout passe par le pipeline. |
 | `--global --uninstall` | Retire aussi les skills tierces listées (`npx skills remove -g`). |
-| `--update` | Met à jour plugins et skills tierces listés, via le pipeline. Ne touche à aucun symlink. N'installe pas un élément absent (rôle de `--global`). |
+| `--update` | Met à jour plugins et skills tierces listés, via le pipeline. Ne touche à aucun symlink. Une skill apparue dans une source déclarée est installée (c'est le sens de « source entière moins exclusions ») ; un plugin listé mais absent ne l'est pas (rôle de `--global`). Requiert le dépôt (`scripts/audit.sh`). |
+| `--no-llm` | Passe `--no-llm` à `audit.sh` : filtre statique seul. |
 | `--update-plugins` | Alias conservé de `--update`. |
 | `--reconsider <nom>` | Efface le refus mémorisé de `<nom>`, puis le repropose au fil du mode choisi. |
 | `--audit-installed` | Lance `audit.sh` en analyse complète sur chaque plugin et skill tierce installés (audit de départ). Aucune installation. |
@@ -137,7 +139,7 @@ préparer ─▶ comparer ─▶ analyser ─▶ décider ─▶ appliquer ─�
 4. **Décider** :
    - code `0` → accepté ;
    - code `1` ou `2` → rapport affiché, puis `Installer quand même ? [o/N]` lu
-     sur `/dev/tty`. Sans terminal, la réponse est non.
+     sur stdin si stdin est un terminal (`[ -t 0 ]`). Sinon la réponse est non. La variable `INSTALL_ANSWER=o|n`, réservée aux tests, répond à la place et compte comme une réponse explicite.
    - Un non **explicite** est mémorisé ; un non faute de terminal ne l'est pas,
      pour qu'une exécution non interactive ne décide jamais à la place de
      l'utilisateur.
@@ -165,10 +167,12 @@ Code retour non nul s'il y a au moins un refus ou une erreur.
 
 - Fichier local `~/.agents/.audit-refused`, non versionné. Une ligne par refus :
   `<type>:<nom> <empreinte> <date AAAA-MM-JJ>`, `<type>` ∈ `skill`, `plugin`.
-- L'empreinte identifie le **contenu**, pas le numéro de version :
-  - skill → hash d'arbre git du dossier (`git rev-parse HEAD:<chemin>`) ;
-  - plugin `{url, sha}` → hash d'arbre de ce commit (`git rev-parse <sha>^{tree}`) ;
-  - plugin en chemin relatif → hash d'arbre du sous-dossier dans le marketplace.
+- L'empreinte identifie le **contenu**, pas le numéro de version : sha256 de la
+  liste triée des fichiers et de leurs contenus, hors artefacts d'exécution
+  (`.git`, `.in_use`, `.orphaned_at`, `__pycache__`, `.DS_Store`), tronqué à 16
+  caractères. Une seule méthode pour tout : le marketplace de plugins n'est pas
+  un dépôt git (il est téléchargé, cf. `.gcs-sha`), un hash d'arbre git n'y est
+  pas disponible.
 - Une empreinte différente (la source a changé) relance le pipeline normal.
 - Un nouveau refus pour le même élément remplace la ligne précédente.
 - `--reconsider <nom>` supprime la ligne de `<nom>`.
@@ -220,16 +224,16 @@ Lancée si le périmètre n'est pas vide, sauf `--no-llm` ou `claude` absent.
   corps fait.
 - Reçoit aussi les signalements statiques, pour les confirmer ou les écarter en
   prose (sans pouvoir les annuler : un grave statique reste grave).
-- Sortie imposée : première ligne `VERDICT: ok` ou `VERDICT: suspect`, puis des
-  constats `fichier:ligne — raison`. Le script ne lit que la ligne `VERDICT`.
+- Sortie imposée : une ligne `VERDICT: ok` ou `VERDICT: suspect` (la première
+  trouvée fait foi), puis des constats `fichier:ligne — raison`. Le script ne lit que la ligne `VERDICT`.
   `suspect` = grave. Ligne absente ou illisible = code `2`.
 - Au-delà de ~200 Ko, le diff est tronqué et le rapport le signale.
 
 ## Livrables
 
 - `install.sh` modifié (configuration, pipeline, options, `usage()`).
-- `scripts/audit.sh`, `scripts/audit-prompt.md`, `scripts/audit-patterns.txt`.
-- `tests/run.sh` et `tests/audit/fixtures/`.
+- `scripts/audit.sh`, `scripts/audit-prompt.md`, `scripts/audit-patterns.txt`, `scripts/lib.sh`.
+- `tests/run.sh`.
 - `CLAUDE.md` : section « Skills tierces et audit de sécurité » — format de
   `THIRD_PARTY_SKILLS`, pipeline, choix skills.sh plutôt que plugin pour Matt
   Pocock (et le risque de doublon), présomption de sûreté, fichier de refus.
@@ -237,7 +241,7 @@ Lancée si le périmètre n'est pas vide, sauf `--no-llm` ou `claude` absent.
 ## Vérification
 
 **`tests/run.sh`** (bash pur) vérifie les codes retour d'`audit.sh` sur des
-fixtures minimales : skill propre (`0`), `curl | sh` (`1`), caractère invisible
+fixtures minimales générées à l'exécution : skill propre (`0`), `curl | sh` (`1`), caractère invisible
 (`1`), hook ajouté (`1`), couple avant/après où seul l'ajout est signalé
 (`--against`). Par défaut en `--no-llm`, déterministe et gratuit ; `--with-llm`
 ajoute une fixture d'injection en prose attendue en `1`.
