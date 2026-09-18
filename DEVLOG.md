@@ -1,5 +1,13 @@
 # Devlog
 
+## 2026-09-18 — Skills tierces et audit de sécurité
+
+- **Skills tierces versionnées dans `install.sh`.** Les 37 skills installées à la main via skills.sh (35 de `mattpocock/skills`, `find-skills`, `ccc`) n'étaient suivies nulle part : une nouvelle machine ne les retrouvait pas. Elles sont maintenant déclarées dans `THIRD_PARTY_SKILLS`, par source entière moins exclusions. Matt Pocock passe par skills.sh plutôt que par le plugin `mattpocock-skills` : le plugin n'est vu que par Claude Code, et installer les deux doublerait chaque skill (`tdd` et `mattpocock-skills:tdd`).
+- **Audit de sécurité avant toute activation**, plugins et skills, à l'installation comme à la mise à jour : préparer → comparer → analyser le diff (filtre statique + `claude -p` isolée) → `[o/N]` → installer → vérifier que l'installé est l'analysé. Refus mémorisés par empreinte de contenu. Nouveau mode `--update` (remplace `--update-plugins`, gardé en alias), plus `--audit-installed`, `--reconsider`, `--no-llm`, `--no-third-party-skills`. Code dans `scripts/` (`lib.sh`, `audit.sh`), 61 tests dans `tests/run.sh`.
+- **Ce que les relectures ont rattrapé.** Claude Code installe les `node_modules` de certains plugins dans leur cache : sans tolérance, `chrome-devtools-mcp` et `atlassian` auraient été désactivés à chaque mise à jour. La revue finale a trouvé des contournements de l'audit — un octet nul faisant passer un script pour binaire, un lien symbolique vers `~/.ssh` lu et envoyé au LLM, le filtre muet au-delà de ~24 000 fichiers (ARG_MAX), un diff tronqué accepté, un auditeur qui chargeait encore les serveurs MCP — tous fermés, chacun avec son test.
+- **Écarts constatés sur les CLI** : le marketplace de plugins n'est pas un dépôt git (empreinte = sha256 du contenu, pas hash d'arbre) ; skills.sh 1.7 ne crée rien dans `~/.copilot/skills`, Copilot CLI lisant directement `~/.agents/skills`.
+- **Vérifié** : installation, relance idempotente et désinstallation dans un `HOME` jetable ; puis un vrai `--update` — 31 skills mises à jour après audit, aucun signalement, 0 erreur, les 10 plugins à jour.
+
 ## 2026-09-18 — Mise à jour des plugins tiers
 
 - **Nouveau mode `install.sh --update-plugins`.** Le bootstrap savait installer et désinstaller les plugins tiers, pas les mettre à jour. Le mode rafraîchit le marketplace puis boucle `claude plugin update <nom>@claude-plugins-official --scope user --json` sur la liste : le CLI ne prend qu'un plugin à la fois, il n'y a pas de `--all`. Il met à jour seulement — un plugin listé mais non installé est signalé, jamais ajouté, car installer reste le rôle de `--global`.

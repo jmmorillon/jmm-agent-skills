@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository purpose
 
-This is a personal collection of authored agent skills (Claude Code / Claude Agent SDK skills), published at `github.com/jmmorillon/jmm-agent-skills`. Content is Markdown — no build, lint, or test toolchain.
+This is a personal collection of authored agent skills (Claude Code / Claude Agent SDK skills), published at `github.com/jmmorillon/jmm-agent-skills`. Skills are Markdown — no build or lint toolchain. The only tests cover the installer's security audit: `tests/run.sh` (bash, ~40 s; see "Security audit" below).
 
 ## Installation script (`install.sh`)
 

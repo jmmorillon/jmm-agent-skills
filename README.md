@@ -25,17 +25,54 @@ Les deux outils voient la même skill, gérée à un seul endroit (le hub). Le s
 En mode `--global`, le script installe aussi une liste versionnée de plugins Claude Code tiers, pour servir de bootstrap « nouvelle machine ». Ils proviennent tous du marketplace officiel `anthropics/claude-plugins-official` et sont installés en scope `user` via le CLI `claude` :
 
 ```bash
-./install.sh --global               # skills perso + plugins tiers
-./install.sh --global --no-plugins  # skills perso uniquement
-./install.sh --update-plugins       # met à jour les plugins déjà installés
+./install.sh --global                          # skills perso + skills tierces + plugins tiers
+./install.sh --global --no-plugins             # sans les plugins tiers
+./install.sh --global --no-third-party-skills  # sans les skills tierces
+./install.sh --update                          # met à jour skills tierces et plugins (alias : --update-plugins)
 ```
 
 La liste (`superpowers`, `figma`, `frontend-design`, `code-review`, `context7`, `skill-creator`, `playwright`, `security-guidance`, `atlassian`, `chrome-devtools-mcp`) est déclarée en haut de `install.sh` : édite le tableau `THIRD_PARTY_PLUGINS` pour en ajouter ou en retirer.
 
 - Nécessite le CLI `claude` dans le `PATH` ; s'il est absent, les plugins sont ignorés (avec un avertissement) et les symlinks de skills s'installent quand même.
 - Les plugins étant en scope `user`, ils ne concernent que `--global` — le mode `--local` ne les touche jamais.
-- `--update-plugins` s'utilise seul : il rafraîchit le marketplace puis met à jour chaque plugin de la liste, sans toucher aux symlinks. Il met à jour seulement — un plugin listé mais absent est signalé, pas installé. Redémarre Claude Code pour appliquer les mises à jour.
+- `--update` s'utilise seul : il rafraîchit le marketplace puis met à jour chaque plugin et chaque skill tierce de la liste, sans toucher aux symlinks. Un plugin listé mais absent est signalé, pas installé ; une skill apparue dans une source déclarée est, elle, installée. Redémarre Claude Code pour appliquer les mises à jour.
 - Seule la *liste* est versionnée ; le cache `~/.claude/plugins/` est reconstruit à partir d'elle et n'a pas à être commité.
+
+### Skills tierces
+
+Les skills qui ne sont pas distribuées en plugin sont déclarées dans le tableau `THIRD_PARTY_SKILLS` de `install.sh`, par source GitHub, avec d'éventuelles exclusions :
+
+```bash
+THIRD_PARTY_SKILLS=(
+  "mattpocock/skills -implement-spec -pr -retro"   # toute la source, sauf ces trois
+  "vercel-labs/skills"
+  "cocoindex-io/cocoindex-code"
+)
+```
+
+Elles sont installées via [skills.sh](https://skills.sh) (`skills@1.7.0`, version épinglée) en une copie unique dans `~/.agents/skills/`, lue par tous les agents (Claude Code via un symlink, Copilot CLI, Codex, Cursor, Gemini directement). Les skills de Matt Pocock passent volontairement par ce canal plutôt que par le plugin `mattpocock-skills`, que seul Claude Code verrait : ne déclare jamais une même source ici **et** en plugin, sinon chaque skill existe en double.
+
+Prérequis : `git` et `node`/`npx`.
+
+### Audit de sécurité
+
+Chaque installation ou mise à jour d'un plugin ou d'une skill tierce passe par un audit **avant** d'être active :
+
+1. la nouvelle version est préparée à part et comparée à la version installée ;
+2. `scripts/audit.sh` analyse le **diff** (tout le contenu à la première installation) : filtre statique (`curl | sh`, accès aux secrets, hooks, serveurs MCP/LSP, scripts npm, Unicode invisible, liens symboliques hors de l'arbre…), puis revue par `claude -p` isolée (sans outils, sans MCP, sans réglages) ;
+3. en cas de signalement grave, le rapport s'affiche et la question `Installer quand même ? [o/N]` est posée ;
+4. après installation, le script vérifie que ce qui est installé est bien ce qui a été analysé — sinon la skill est retirée, le plugin désinstallé.
+
+Un refus explicite est mémorisé dans `~/.agents/.audit-refused` tant que le contenu ne change pas ; sans terminal, la réponse est non, sans être mémorisée.
+
+```bash
+./install.sh --reconsider <nom>    # oublie un refus
+./install.sh --audit-installed     # audite en entier ce qui est déjà installé
+./install.sh --update --no-llm     # audit par filtre statique seul
+tests/run.sh                       # tests de l'audit (--with-llm : 2 appels réels)
+```
+
+Limite connue : les dépendances npm que Claude Code installe lui-même dans le cache de certains plugins (`chrome-devtools-mcp`, `atlassian`) arrivent après l'audit ; seul `--audit-installed` les analyse.
 
 ### Sous-agents
 
@@ -65,7 +102,7 @@ Crée `<projet>/.claude/skills/<skill>` et `<projet>/.copilot/skills/<skill>` co
 ./install.sh --local /chemin --uninstall
 ```
 
-Retire uniquement les symlinks créés par ce dépôt. Ne touche jamais à un fichier réel ni à un symlink qui pointe ailleurs. En mode `--global`, désinstalle aussi les plugins tiers listés (sauf avec `--no-plugins`).
+Retire uniquement les symlinks créés par ce dépôt. Ne touche jamais à un fichier réel ni à un symlink qui pointe ailleurs. En mode `--global`, désinstalle aussi les plugins tiers listés (sauf avec `--no-plugins`) et les skills tierces des sources déclarées (sauf avec `--no-third-party-skills`).
 
 ### Comportement du script
 
