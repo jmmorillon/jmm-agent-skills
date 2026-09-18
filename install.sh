@@ -29,9 +29,13 @@ THIRD_PARTY_PLUGINS=(
 
 # Skills tierces installées via skills.sh (npx skills) en --global, mises à
 # jour par --update. « source [-exclusion …] » : toute la source GitHub, sauf
-# les skills préfixées de -. Copie unique dans ~/.agents/skills, lue par tous
-# les agents ; -a les expose en plus à Claude Code et Copilot. Ne pas lister
-# ici une source aussi installée en plugin : chaque skill existerait en double.
+# les skills préfixées de -. Copie unique dans ~/.agents/skills (le hub), lue
+# par tous les agents. -a claude-code pose en plus un symlink relatif
+# ~/.claude/skills/<nom> → le hub ; -a github-copilot n'écrit rien de plus
+# (skills.sh ≥ 1.7 le traite comme un agent « universel », qui lit
+# ~/.agents/skills directement, comme Codex, Cursor ou Gemini CLI). Ne pas
+# lister ici une source aussi installée en plugin : chaque skill existerait
+# en double.
 THIRD_PARTY_SKILLS=(
   "mattpocock/skills -implement-spec -pr -retro"
   "vercel-labs/skills"
@@ -122,7 +126,12 @@ while [ $# -gt 0 ]; do
       shift
       ;;
     --reconsider)
-      RECONSIDER="${2:?--reconsider attend un nom}"
+      if [ $# -lt 2 ] || [[ "$2" == -* ]]; then
+        echo "Erreur : --reconsider attend un nom." >&2
+        usage >&2
+        exit 2
+      fi
+      RECONSIDER="$2"
       shift 2
       ;;
     --no-plugins)
@@ -153,13 +162,12 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ -n "$RECONSIDER" ]; then
-  forget_refusal "$RECONSIDER"
-  echo "oubli refus de $RECONSIDER : il sera reproposé"
-fi
-
 if [ -z "$MODE" ]; then
-  if [ -n "$RECONSIDER" ]; then exit 0; fi
+  if [ -n "$RECONSIDER" ]; then
+    forget_refusal "$RECONSIDER"
+    echo "oubli refus de $RECONSIDER : il sera reproposé"
+    exit 0
+  fi
   echo "Erreur : --global, --local, --update ou --audit-installed requis." >&2
   usage >&2
   exit 2
@@ -178,6 +186,13 @@ fi
 if [ "$MODE" != "local" ] && [ ! -x "$AUDIT" ]; then
   echo "Erreur : $AUDIT introuvable ; l'audit de sécurité est obligatoire." >&2
   exit 1
+fi
+
+# Appliqué seulement une fois toutes les validations passées : une commande
+# invalide (ex. --update --uninstall) ne doit pas oublier le refus au passage.
+if [ -n "$RECONSIDER" ]; then
+  forget_refusal "$RECONSIDER"
+  echo "oubli refus de $RECONSIDER : il sera reproposé"
 fi
 
 # Crée $link → $target. Idempotent. Ne touche pas à un symlink qui pointe
@@ -418,6 +433,11 @@ sync_skill_source() {
   fi
   for dir in "${found[@]}"; do
     name="$(skill_name "$dir")"
+    if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+      echo "warn  $src : nom de skill invalide « $name », ignoré"
+      N_ERR=$((N_ERR + 1))
+      continue
+    fi
     case " $excl " in *" -$name "*) echo "exclu $name"; continue ;; esac
     installed=""
     if [ -d "$HUB/$name" ]; then installed="$HUB/$name"; fi
