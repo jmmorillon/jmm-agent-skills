@@ -116,6 +116,7 @@ expect 0 "" "le prompt délimite le diff" -- grep -q '^<<<DIFF_DEBUT' "$T/prompt
 expect 0 "" "le prompt contient le fichier analysé" -- grep -q 'Résume le fichier ouvert' "$T/prompt"
 expect 1 "injection" "verdict suspect, constats affichés" -- env AUDIT_CLAUDE_BIN="$T/fake-claude" FAKE_OUT=$'Analyse :\nVERDICT: suspect\nSKILL.md:5 — injection' "$AUDIT" "$T/clean"
 expect 2 "verdict illisible" "réponse sans verdict" -- env AUDIT_CLAUDE_BIN="$T/fake-claude" FAKE_OUT="je ne sais pas" "$AUDIT" "$T/clean"
+expect 2 "verdict illisible" "longue réponse sans verdict : pas de SIGPIPE, code 2 conservé" -- env AUDIT_CLAUDE_BIN="$T/fake-claude" FAKE_OUT="$(seq 1 20000)" "$AUDIT" "$T/clean"
 expect 2 "échec" "claude en erreur" -- env AUDIT_CLAUDE_BIN="$T/fake-claude" FAKE_OUT="" FAKE_RC=1 "$AUDIT" "$T/clean"
 expect 1 "téléchargement exécuté" "un grave statique reste grave malgré VERDICT: ok" -- env AUDIT_CLAUDE_BIN="$T/fake-claude" FAKE_OUT="VERDICT: ok" "$AUDIT" "$T/curl"
 expect 0 "introuvable" "claude absent : statique seul, avertissement" -- env AUDIT_CLAUDE_BIN="$T/nexistepas" "$AUDIT" "$T/clean"

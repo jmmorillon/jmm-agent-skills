@@ -172,7 +172,7 @@ llm_review() {
       printf '%s\n' "$out" | grep -v 'VERDICT:' | sed '/^[[:space:]]*$/d; s/^/    /' || true ;;
     *)
       echo "  [erreur] revue LLM : verdict illisible"
-      printf '%s\n' "$out" | head -n 5 | sed 's/^/    /'
+      printf '%s\n' "$out" | head -n 5 | sed 's/^/    /' || true
       LLM_ERROR=1 ;;
   esac
 }
