@@ -506,26 +506,156 @@ uninstall_third_party_skills() {
   done
 }
 
-# Installe les plugins tiers via le CLI 'claude' (scope user, non interactif).
-# Idempotent : le marketplace déjà connu et un plugin déjà installé renvoient
-# une erreur bénigne, absorbée sans faire échouer le script.
-install_plugins() {
-  if ! command -v claude >/dev/null 2>&1; then
-    echo "warn  CLI 'claude' introuvable, plugins tiers ignorés"
+PLUGINS_DIR="$HOME/.claude/plugins"
+MARKETPLACE_DIR="$PLUGINS_DIR/marketplaces/$PLUGIN_MARKETPLACE_NAME"
+
+# Source d'un plugin dans le marketplace : « path <rel> », « url <url> <sha> »,
+# « unknown », ou rien s'il n'y figure pas.
+plugin_source() {
+  node -e '
+    const [file, name] = process.argv.slice(1);
+    const p = (require(file).plugins || []).find(x => x.name === name);
+    if (!p) process.exit(0);
+    const s = p.source;
+    if (typeof s === "string") console.log("path " + s);
+    else if (s && s.source === "url") console.log("url " + s.url + " " + (s.sha || ""));
+    else console.log("unknown");
+  ' "$MARKETPLACE_DIR/.claude-plugin/marketplace.json" "$1"
+}
+
+# installPath du plugin au scope user, vide s'il n'est pas installé.
+plugin_install_path() {
+  local f="$PLUGINS_DIR/installed_plugins.json"
+  if [ ! -f "$f" ]; then return 0; fi
+  node -e '
+    const [file, key] = process.argv.slice(1);
+    const e = ((require(file).plugins || {})[key] || []).find(x => x.scope === "user");
+    if (e) console.log(e.installPath);
+  ' "$f" "$1@$PLUGIN_MARKETPLACE_NAME"
+}
+
+# Prépare la version du marketplace et affiche son dossier. Chemin relatif :
+# le marketplace lui-même. {url, sha} : fetch de ce seul commit dans $STAGE.
+stage_plugin() {
+  local name="$1" kind a b dir
+  read -r kind a b <<< "$(plugin_source "$name")"
+  case "$kind" in
+    path)
+      printf '%s\n' "$MARKETPLACE_DIR/${a#./}" ;;
+    url)
+      dir="$STAGE/plugins/$name"
+      mkdir -p "$dir"
+      if ! { git -C "$dir" init -q && git -C "$dir" remote add origin "$a" \
+          && git -C "$dir" fetch -q --depth 1 origin "${b:-HEAD}" 2>/dev/null \
+          && git -C "$dir" checkout -q FETCH_HEAD 2>/dev/null; }; then
+        return 1
+      fi
+      printf '%s\n' "$dir" ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+# Passe un plugin au pipeline. sync_plugin <nom> <install|update>
+sync_plugin() {
+  local name="$1" mode="$2" installed staged hash out rc=0 verb
+  installed="$(plugin_install_path "$name")"
+  if [ "$mode" = "update" ] && [ -z "$installed" ]; then
+    echo "warn  $name non installé (not_found) : c'est le rôle de --global"
     return 0
   fi
+  if ! staged="$(stage_plugin "$name")"; then
+    echo "warn  $name : source introuvable ou non gérée dans le marketplace"
+    N_ERR=$((N_ERR + 1))
+    return 0
+  fi
+  hash="$(content_hash "$staged")"
+  gate plugin "$name" "$staged" "$installed" "$hash" || rc=$?
+  if [ "$rc" -ne 0 ]; then return 0; fi
+  verb="install"
+  if [ -n "$installed" ]; then verb="update"; fi
+  if ! out="$(claude plugin "$verb" "$name@$PLUGIN_MARKETPLACE_NAME" --scope user </dev/null 2>&1)"; then
+    echo "warn  $name : échec de claude plugin $verb"
+    printf '%s\n' "$out" | head -n 3 | sed 's/^/      /'
+    N_ERR=$((N_ERR + 1))
+    return 0
+  fi
+  installed="$(plugin_install_path "$name")"
+  if [ -n "$installed" ] && trees_equal "$staged" "$installed"; then
+    echo "plug  $name ($verb)"
+    N_APPLIED=$((N_APPLIED + 1))
+  else
+    echo "warn  $name : l'installé diffère de l'analysé, plugin désactivé"
+    claude plugin disable "$name@$PLUGIN_MARKETPLACE_NAME" --scope user </dev/null >/dev/null 2>&1 || true
+    N_ERR=$((N_ERR + 1))
+  fi
+}
 
-  echo "→ marketplace $PLUGIN_MARKETPLACE"
-  claude plugin marketplace add "$PLUGIN_MARKETPLACE" --scope user >/dev/null 2>&1 || true
-
-  local plugin
-  for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do
-    if claude plugin install "${plugin}@${PLUGIN_MARKETPLACE_NAME}" --scope user >/dev/null 2>&1; then
-      echo "plug  ${plugin}"
-    else
-      echo "ok    ${plugin} (déjà présent ou sans changement)"
+# Enregistre et rafraîchit le marketplace, puis passe chaque plugin listé au
+# pipeline. sync_plugins <install|update>
+sync_plugins() {
+  local mode="$1" plugin c
+  for c in claude node git; do
+    if ! command -v "$c" >/dev/null 2>&1; then
+      echo "warn  '$c' introuvable, plugins tiers ignorés"
+      return 0
     fi
   done
+  echo "→ marketplace $PLUGIN_MARKETPLACE"
+  claude plugin marketplace add "$PLUGIN_MARKETPLACE" --scope user </dev/null >/dev/null 2>&1 || true
+  if ! claude plugin marketplace update "$PLUGIN_MARKETPLACE_NAME" </dev/null >/dev/null 2>&1; then
+    echo "warn  marketplace non rafraîchi, analyse depuis le cache local"
+  fi
+  for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do sync_plugin "$plugin" "$mode"; done
+  if [ "$N_APPLIED" -gt 0 ]; then
+    echo "→ redémarre Claude Code pour appliquer les plugins installés ou mis à jour."
+  fi
+}
+
+install_plugins() { sync_plugins install; }
+update_plugins() { sync_plugins update; }
+
+# Audit complet de ce qui est déjà installé (état de départ). N'installe rien.
+audit_installed() {
+  local entry src n plugin p i rc flagged=0
+  local targets=() labels=()
+  if [ "$INCLUDE_TP_SKILLS" = "yes" ] && command -v node >/dev/null 2>&1; then
+    for entry in "${THIRD_PARTY_SKILLS[@]}"; do
+      read -r src _ <<< "$entry"
+      while IFS= read -r n; do
+        if [ -d "$HUB/$n" ]; then
+          targets+=("$HUB/$n")
+          labels+=("skill:$n")
+        fi
+      done < <(skills_from_source "$src")
+    done
+  fi
+  if [ "$INCLUDE_PLUGINS" = "yes" ] && command -v node >/dev/null 2>&1; then
+    for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do
+      p="$(plugin_install_path "$plugin")"
+      if [ -n "$p" ] && [ -d "$p" ]; then
+        targets+=("$p")
+        labels+=("plugin:$plugin")
+      fi
+    done
+  fi
+  if [ ${#targets[@]} -eq 0 ]; then
+    echo "→ rien à auditer"
+    return 0
+  fi
+  local extra=()
+  if [ "$USE_LLM" = "no" ]; then extra+=(--no-llm); fi
+  for i in "${!targets[@]}"; do
+    rc=0
+    if [ ${#extra[@]} -gt 0 ]; then
+      "$AUDIT" "${targets[$i]}" --name "${labels[$i]}" "${extra[@]}" || rc=$?
+    else
+      "$AUDIT" "${targets[$i]}" --name "${labels[$i]}" || rc=$?
+    fi
+    if [ "$rc" -ne 0 ]; then flagged=$((flagged + 1)); fi
+  done
+  echo "→ audit : ${#targets[@]} élément(s) analysé(s), $flagged à revoir"
+  [ "$flagged" -eq 0 ]
 }
 
 # Désinstalle uniquement les plugins listés dans ce script (scope user).
@@ -545,53 +675,16 @@ uninstall_plugins() {
   done
 }
 
-# Extrait la valeur texte du champ $2 dans la ligne JSON $1. Suffisant pour les
-# champs plats de 'claude plugin update --json' ; pas un parseur JSON.
-json_field() {
-  printf '%s' "$1" | sed -n "s/.*\"$2\":\"\([^\"]*\)\".*/\1/p"
-}
-
-# Rafraîchit le marketplace puis met à jour chaque plugin listé (scope user).
-# N'installe rien : un plugin absent est signalé, pas ajouté — c'est le rôle de
-# --global. Le redémarrage de Claude Code applique les mises à jour.
-update_plugins() {
-  if ! command -v claude >/dev/null 2>&1; then
-    echo "Erreur : CLI 'claude' introuvable, plugins non mis à jour." >&2
-    exit 1
-  fi
-
-  echo "→ marketplace $PLUGIN_MARKETPLACE_NAME"
-  if ! claude plugin marketplace update "$PLUGIN_MARKETPLACE_NAME" >/dev/null 2>&1; then
-    echo "warn  marketplace non rafraîchi, mise à jour depuis le cache local"
-  fi
-
-  local plugin out updated=0
-  for plugin in "${THIRD_PARTY_PLUGINS[@]}"; do
-    if out="$(claude plugin update "${plugin}@${PLUGIN_MARKETPLACE_NAME}" --scope user --json 2>/dev/null)"; then
-      if [ "$(json_field "$out" updateOutcome)" = "up_to_date" ]; then
-        echo "ok    ${plugin} ($(json_field "$out" newVersion))"
-      else
-        echo "maj   ${plugin} $(json_field "$out" oldVersion) → $(json_field "$out" newVersion)"
-        updated=$((updated + 1))
-      fi
-    else
-      echo "warn  ${plugin} non mis à jour ($(json_field "$out" failureCode))"
-    fi
-  done
-
-  if [ "$updated" -gt 0 ]; then
-    echo "→ $updated plugin(s) mis à jour : redémarre Claude Code pour appliquer."
-  else
-    echo "→ tous les plugins sont déjà à jour."
-  fi
-}
-
 case "$MODE:$ACTION" in
   update:install)
     stage_dir
     if [ "$INCLUDE_TP_SKILLS" = "yes" ]; then sync_skills; fi
     if [ "$INCLUDE_PLUGINS" = "yes" ]; then update_plugins; fi
     summary || exit 1
+    ;;
+
+  audit-installed:install)
+    audit_installed || exit 1
     ;;
 
   global:install)
