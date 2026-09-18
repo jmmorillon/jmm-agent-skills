@@ -42,6 +42,10 @@ THIRD_PARTY_SKILLS=(
   "cocoindex-io/cocoindex-code"
 )
 THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
+# Version épinglée du CLI skills.sh lancé par npx : c'est lui qui écrit dans le
+# hub, après l'audit. Monter la version délibérément (relire son changelog),
+# jamais « latest ».
+SKILLS_CLI="skills@1.7.0"
 
 usage() {
   cat <<EOF
@@ -395,10 +399,13 @@ summary() {
   if [ "$N_REFUSED" -gt 0 ] || [ "$N_ERR" -gt 0 ]; then return 1; fi
 }
 
-# Nom d'une skill : champ name: de son SKILL.md, à défaut le nom du dossier.
+# Nom d'une skill : champ name: du frontmatter (bloc --- de tête) de son
+# SKILL.md, à défaut le nom du dossier. Un name: dans le corps est ignoré.
 skill_name() {
   local n
-  n="$(awk '/^name:/ { sub(/^name:[[:space:]]*/, ""); print; exit }' "$1/SKILL.md" | tr -d "\"'")"
+  n="$(awk 'NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit; next }
+    /^---[[:space:]]*$/ { exit }
+    /^name:/ { sub(/^name:[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print; exit }' "$1/SKILL.md" | tr -d "\"'")"
   printf '%s\n' "${n:-$(basename "$1")}"
 }
 
@@ -441,6 +448,16 @@ sync_skill_source() {
       continue
     fi
     case " $excl " in *" -$name "*) echo "exclu $name"; continue ;; esac
+    # Nom déjà pris par une skill de ce dépôt : ne jamais comparer à elle ni
+    # l'écraser. À exclure explicitement de la source (-<nom>).
+    if [ -L "$HUB/$name" ]; then
+      case "$(readlink "$HUB/$name")" in
+        "$SKILLS_SRC"/*)
+          echo "warn  $name : nom déjà pris par une skill de ce dépôt, ignoré (ajoute -$name à $src)"
+          N_ERR=$((N_ERR + 1))
+          continue ;;
+      esac
+    fi
     installed=""
     if [ -d "$HUB/$name" ]; then installed="$HUB/$name"; fi
     hash="$(content_hash "$dir")"
@@ -453,7 +470,7 @@ sync_skill_source() {
   done
   if [ ${#names[@]} -eq 0 ]; then return 0; fi
   # shellcheck disable=SC2086 # liste d'agents volontairement découpée
-  if ! npx --yes skills add "$src" -g -s "${names[@]}" -a $THIRD_PARTY_SKILL_AGENTS -y </dev/null >/dev/null 2>&1; then
+  if ! npx --yes "$SKILLS_CLI" add "$src" -g -s "${names[@]}" -a $THIRD_PARTY_SKILL_AGENTS -y </dev/null >/dev/null 2>&1; then
     echo "warn  $src : échec de npx skills add"
     N_ERR=$((N_ERR + 1))
     return 0
@@ -465,7 +482,7 @@ sync_skill_source() {
       N_APPLIED=$((N_APPLIED + 1))
     else
       echo "warn  ${names[$i]} : l'installé diffère de l'analysé (la source a bougé), retiré"
-      npx --yes skills remove -g -y "${names[$i]}" </dev/null >/dev/null 2>&1 || true
+      npx --yes "$SKILLS_CLI" remove -g -y "${names[$i]}" </dev/null >/dev/null 2>&1 || true
       N_ERR=$((N_ERR + 1))
     fi
   done
@@ -500,7 +517,7 @@ uninstall_third_party_skills() {
       echo "skip  $src (aucune skill installée)"
       continue
     fi
-    if npx --yes skills remove -g -y "${names[@]}" </dev/null >/dev/null 2>&1; then
+    if npx --yes "$SKILLS_CLI" remove -g -y "${names[@]}" </dev/null >/dev/null 2>&1; then
       echo "rm    $src : ${names[*]}"
     else
       echo "warn  $src : échec de npx skills remove"
@@ -512,12 +529,17 @@ PLUGINS_DIR="$HOME/.claude/plugins"
 MARKETPLACE_DIR="$PLUGINS_DIR/marketplaces/$PLUGIN_MARKETPLACE_NAME"
 
 # Source d'un plugin dans le marketplace : « path <rel> », « url <url> <sha> »,
-# « unknown », ou rien s'il n'y figure pas.
+# « inline <clés> » si l'entrée du marketplace déclare elle-même des
+# composants (hooks, serveurs, commandes…) — jamais préparés ni hachés, donc
+# jamais audités —, « unknown », ou rien s'il n'y figure pas.
 plugin_source() {
   node -e '
     const [file, name] = process.argv.slice(1);
     const p = (require(file).plugins || []).find(x => x.name === name);
     if (!p) process.exit(0);
+    const inline = ["hooks", "mcpServers", "lspServers", "commands", "agents", "skills"]
+      .filter(k => Object.prototype.hasOwnProperty.call(p, k));
+    if (inline.length) { console.log("inline " + inline.join(",")); process.exit(0); }
     const s = p.source;
     if (typeof s === "string") console.log("path " + s);
     else if (s && s.source === "url") console.log("url " + s.url + " " + (s.sha || ""));
@@ -586,6 +608,14 @@ sync_plugin() {
     echo "warn  $name non installé (not_found) : c'est le rôle de --global"
     return 0
   fi
+  local src
+  src="$(plugin_source "$name")" || src=""
+  case "$src" in
+    inline\ *)
+      echo "warn  $name : l'entrée du marketplace déclare elle-même des composants (${src#inline }), non auditables : ignoré"
+      N_ERR=$((N_ERR + 1))
+      return 0 ;;
+  esac
   if ! staged="$(stage_plugin "$name")"; then
     echo "warn  $name : source introuvable ou non gérée dans le marketplace"
     N_ERR=$((N_ERR + 1))
@@ -617,9 +647,13 @@ sync_plugin() {
     fi
     N_APPLIED=$((N_APPLIED + 1))
   else
-    echo "warn  $name : l'installé diffère de l'analysé, plugin désactivé"
+    # Désinstallé, pas désactivé : un plugin désactivé resterait en cache et
+    # passerait pour « déjà à jour » au prochain lancement, sans avoir été audité.
+    echo "warn  $name : l'installé diffère de l'analysé, plugin désinstallé"
     printf '%s\n' "$out" | tail -n 5 | sed 's/^/      /'
-    claude plugin disable "$name@$PLUGIN_MARKETPLACE_NAME" --scope user </dev/null >/dev/null 2>&1 || true
+    if ! claude plugin uninstall "$name@$PLUGIN_MARKETPLACE_NAME" --scope user --yes </dev/null >/dev/null 2>&1; then
+      echo "warn  $name : échec de la désinstallation, à retirer à la main (claude plugin uninstall $name@$PLUGIN_MARKETPLACE_NAME)"
+    fi
     N_ERR=$((N_ERR + 1))
   fi
 }
