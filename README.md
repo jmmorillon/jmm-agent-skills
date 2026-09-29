@@ -74,6 +74,19 @@ tests/run.sh                       # tests de l'audit (--with-llm : 2 appels ré
 
 Limite connue : les dépendances npm que Claude Code installe lui-même dans le cache de certains plugins (`chrome-devtools-mcp`, `atlassian`) arrivent après l'audit ; seul `--audit-installed` les analyse.
 
+### Mettre à jour les plugins et skills tierces
+
+```bash
+git pull                     # récupère la liste à jour (THIRD_PARTY_PLUGINS / THIRD_PARTY_SKILLS)
+./install.sh --update        # met à jour plugins et skills tierces, audit compris
+# puis redémarre Claude Code pour charger les nouvelles versions des plugins
+```
+
+- `--update` s'utilise seul (sans `--global`/`--local`, incompatible avec `--uninstall`) et depuis le dépôt : il a besoin de `scripts/audit.sh`.
+- Il ne touche à aucun symlink ; seuls les éléments dont le contenu a changé sont audités (sur le diff), les autres sont considérés à jour.
+- Une skill nouvellement publiée dans une source déclarée est installée ; un plugin **ajouté à la liste** mais pas encore installé est seulement signalé (`not_found`) — lance `./install.sh --global` pour l'installer.
+- Variantes : `--no-llm` (filtre statique seul, sans appel à `claude -p`) ; `--reconsider <nom>` pour réexaminer une mise à jour refusée auparavant.
+
 ### Sous-agents
 
 Le dépôt versionne aussi des définitions de **sous-agents** Claude Code, dans le dossier `agents/` (fichiers `.md` plats). Ils sont symlinkés comme les skills, avec deux différences : ce sont des fichiers (pas des dossiers) et ils ne concernent **que Claude Code** (pas de couche Copilot, pas de hub `~/.agents/`).
