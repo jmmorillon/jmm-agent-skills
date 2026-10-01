@@ -7,11 +7,11 @@ Remplace chaque `<…>`. Une section sans contenu est supprimée, jamais laissé
 id: <AAAAMMJJHHmm>
 title: <titre de la source, sans « : »> (<vidéo|article|livre|podcast|page>)
 aliases:
-  - <alias court, facultatif>
+  - <alias court ; sans alias, supprime la clé aliases entière>
 type: literature-note
 tags:
   - "#<tag>"
-source: <description de la source, ex. Vidéo YouTube « … » de <auteur>>
+source: "<description de la source, ex. Vidéo YouTube « … » de <auteur>>"
 date_created: <AAAA-MM-JJ>
 ---
 [<titre original exact>](<url>)
@@ -50,5 +50,7 @@ date_created: <AAAA-MM-JJ>
 
 - **Ligne d'URL** en tête du corps : seulement si la source a une URL. Sinon, supprime la ligne.
 - **Repères horodatés** : seulement s'ils figurent dans la transcription fournie. URL horodatée YouTube : `<url>&t=<secondes>s`. Page de livre : `p. <n>` sans lien. Jamais de repère reconstitué.
-- **Leçon tirée de l'analyse** (et non de la source, par ex. tirée des points faibles) : ligne sans repère, préfixée « Leçon tirée des faiblesses de la source → ».
-- **« Mon avis »** : le texte validé par l'utilisateur, mot pour mot.
+- **Leçon tirée de l'analyse** (idée marquée « (leçon tirée de l'analyse) » par `/analyse-contenu`) : ligne sans repère, de la forme « Leçon tirée des faiblesses de la source → [[<fiche>]] ».
+- **Thèse et « Mon avis »** : le texte validé par l'utilisateur à l'étape 4, mot pour mot.
+- **Faits solides, Points faibles, Non vérifiable** : repris de l'analyse ; une section « Aucun. » est supprimée. Un fait solide qui redit mot pour mot une idée extraite est omis.
+- **Tags** : mêmes règles que pour une fiche (2 à 4, minuscules, sans accents, `-`, `#`, guillemets).

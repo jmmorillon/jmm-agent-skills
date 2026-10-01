@@ -26,6 +26,7 @@ Si tu n'as pu lire qu'une partie du contenu, dis-le en tête de la sortie et pr�
 ## Contraintes
 
 - **Trois registres, jamais mélangés** : *ce que dit la source* (Thèse, Idées candidates), *ce que tu en sais* (Faits solides, Points faibles), *ce que tu ne peux pas trancher* (Non vérifiable).
+- **Faits solides, Points faibles et Non vérifiable ne contiennent que des affirmations faites par la source.** Tes connaissances servent à les juger (la raison d'un point faible, la confirmation d'un fait), jamais à ajouter un fait que la source ne donne pas.
 - **Fidélité** : chaque idée attribuée à la source doit s'y trouver. Pas d'idée ajoutée, pas de nuance retirée, pas de conclusion plus forte que celle de l'auteur.
 - **Aucune invention** : ne complète jamais un chiffre, une date, un nom, une citation ; n'invente aucune source.
 - **Web seulement en cas de doute** : pour un chiffre, un fait daté ou un fait récent dont tu n'es pas sûr, cherche une source primaire et cite-la. Sans source fiable trouvée : « Non vérifiable ». Ne tranche jamais au hasard.
@@ -35,12 +36,19 @@ Si tu n'as pu lire qu'une partie du contenu, dis-le en tête de la sortie et pr�
 
 ## Méthode
 
-1. **Identifie la source** : titre exact, type (vidéo, article, livre, podcast, page), auteur s'il est indiqué, lien.
+1. **Identifie la source** : titre exact, type, auteur s'il est indiqué, lien. Types : `vidéo`, `podcast`, `livre`, `article` (texte signé ou daté : presse, blog, newsletter), `page` (page de référence ou de documentation, sans auteur ni date).
 2. **Lis tout le contenu** avant d'écrire quoi que ce soit.
-3. **Formule la thèse** en 2-3 phrases, avec les mots de l'auteur quand c'est possible.
-4. **Relève les affirmations vérifiables** (chiffres, faits, dates, causalités) et classe chacune : solide, faible (avec la raison : fausse, sans source, comparaison bancale, contradiction, conflit d'intérêts, cause concurrente ignorée), ou non vérifiable.
-5. **Choisis les idées candidates.** Une idée mérite d'être retenue si elle est **tangible** (fait établi, mécanisme, méthode, critère de décision) et **réutilisable hors de ce contenu**. Écarte les opinions non argumentées, les anecdotes sans portée, les chiffres faibles. Formule chacune comme une affirmation simple. Une leçon tirée des points faibles peut être une idée : marque-la « (leçon tirée de l'analyse) », elle n'est pas attribuée à la source.
-6. **Propose un avis** : 1-2 phrases sur la valeur du contenu (ce qui est utile, ce qui ne l'est pas), présentées comme une proposition à corriger.
+3. **Formule la thèse** en 2-3 phrases, avec les mots de l'auteur quand c'est possible : c'est ce que *dit* l'auteur, même si une partie se révèle faible ensuite.
+4. **Relève les affirmations vérifiables** de la source (chiffres, faits, dates, causalités) et range chacune dans **une seule** section, dans cet ordre de priorité :
+   1. **Points faibles** — tu peux nommer un défaut : affirmation fausse, chiffre-clé sans source sur lequel l'auteur appuie sa thèse, comparaison bancale, conclusion plus forte que la prémisse, cause concurrente ignorée, contradiction, conflit d'intérêts. Écris la raison.
+   2. **Faits solides** — l'affirmation est exacte, à ta connaissance sûre ou par une source que tu cites.
+   3. **Non vérifiable** — ni confirmée ni infirmée, et aucun défaut nommable. Un chiffre secondaire sans source, sans rôle dans la thèse, va ici.
+
+   Une affirmation en partie juste se scinde : la partie exacte en Faits solides, la partie défaillante en Points faibles (« se tester fait mieux retenir » / « trois fois plus, sans source »).
+
+   Faits solides ne répète pas les Idées candidates : il sert aux faits précis (chiffres, dates, événements) qu'une fiche pourra citer.
+5. **Choisis les idées candidates.** Une idée mérite d'être retenue si elle est **tangible** (fait établi, mécanisme, méthode, critère de décision) et **réutilisable hors de ce contenu**. Écarte les opinions non argumentées et les anecdotes sans portée. Si une idée s'appuie sur un chiffre faible ou non vérifiable, garde l'idée sans le chiffre. Formule chacune comme une affirmation simple. Une leçon tirée des points faibles peut être une idée : marque-la « (leçon tirée de l'analyse) », elle n'est pas attribuée à la source.
+6. **Propose un avis** : 1-2 phrases sur la valeur du contenu (ce qui est utile, ce qui ne l'est pas). C'est la seule section où tu donnes un jugement personnel ; il se fonde sur les sections précédentes et se présente comme une proposition à corriger.
 
 ## Sortie obligatoire
 
@@ -50,16 +58,17 @@ Exactement ces sections, dans cet ordre. Une section sans contenu porte « Aucun
 ## Source
 <Titre exact> — <type> — <auteur ou « auteur non indiqué »> — <lien ou « pas de lien »>
 <Si lecture partielle : « Lu jusqu'à <repère> sur <total>. »>
+<Si la source n'a aucun repère (horodatage, page, section) : « Aucun repère dans la source. »>
 
 ## Thèse
 <2-3 phrases>
 
 ## Idées candidates
-1. <affirmation> — <repère : MM:SS, p. n, section… ou « sans repère »>
+1. <affirmation> — <repère : MM:SS, p. n, section… ; omis si la source n'a aucun repère>
 2. …
 
 ## Faits solides
-- <fait> <(source : …) si vérifié par recherche>
+- <affirmation de la source, confirmée> <(source : …) si vérifiée par recherche>
 
 ## Points faibles
 - <affirmation> : <raison>
