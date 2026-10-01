@@ -1,5 +1,24 @@
 # Devlog
 
+## 2026-10-01 — Analyse de contenu et Zettelkasten
+
+- **Deux nouveaux skills, `analyse-contenu` et `zettelkasten`.** Ils automatisent un flux déjà pratiqué à la main dans le vault : une note de littérature par contenu externe (vidéo, article, livre…), plus des fiches permanentes atomiques dans `Connaissances/Prise de notes/`. Le premier analyse le contenu et rend le résultat dans le chat : thèse, idées candidates, faits solides, points faibles, non vérifiable, avis proposé. Le second propose les fiches, les fait valider, puis les écrit. Partage des rôles : `analyse-contenu` n'écrit jamais dans le vault, `zettelkasten` ne juge jamais un contenu.
+- **Couplés par un contrat d'analyse, pas par des gabarits dupliqués.** Contrairement au couple `add-knowledge` / `check-knowledge`, un seul skill écrit des fichiers. Les deux gabarits (fiche permanente, note de littérature) sont donc des ressources de `zettelkasten` seul, sous `references/`, dérivées de notes réelles du vault. Le seul point de couplage est la liste des 7 sections de sortie de l'analyse.
+- **Règles tirées des notes existantes.** Le `title` est identique au nom de fichier, d'où « : » remplacé par « - ». Les `id` existants se suivent minute par minute : le premier `id` vaut donc le plus grand entre l'heure courante et (plus grand `id` existant + 1). Aucun fichier existant n'est modifié, `_INDEX.md` compris : les liens partent des nouvelles fiches, et les backlinks d'Obsidian couvrent le sens inverse.
+- **Ce que les essais et la revue ont rattrapé.** Trois fumigations, jouées par des sous-agents sur une copie de `Prise de notes/` : article sans repère dont toutes les idées étaient déjà couvertes, idée dictée, transcription horodatée.
+  - *Corrigé* :
+    - le classement ambigu entre point faible et non vérifiable ;
+    - des faits ajoutés de mémoire dans « Faits solides » ;
+    - le cas « rien à créer » ;
+    - le mode idée dictée, non décrit étape par étape ;
+    - le YAML invalide quand `source` contient « : » (défaut déjà présent dans une note du vault, signalé sans être corrigé).
+  - *Revue finale* :
+    - `#` et `[ ]` dans un titre cassent un `[[lien]]` ;
+    - une idée dictée déjà couverte devenait un doublon ;
+    - une page web récupérée pouvait n'être qu'un résumé ;
+    - une relance sur la même source créait une seconde note de littérature.
+- **Pas encore vérifié** : le déclenchement des deux skills en vraie session.
+
 ## 2026-09-18 — Skills tierces et audit de sécurité
 
 - **Skills tierces versionnées dans `install.sh`.** Les 37 skills installées à la main via skills.sh (35 de `mattpocock/skills`, `find-skills`, `ccc`) n'étaient suivies nulle part : une nouvelle machine ne les retrouvait pas. Elles sont maintenant déclarées dans `THIRD_PARTY_SKILLS`, par source entière moins exclusions. Matt Pocock passe par skills.sh plutôt que par le plugin `mattpocock-skills` : le plugin n'est vu que par Claude Code, et installer les deux doublerait chaque skill (`tdd` et `mattpocock-skills:tdd`).

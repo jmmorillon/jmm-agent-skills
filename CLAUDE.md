@@ -71,6 +71,8 @@ The design rationale behind these two lives in `docs/superpowers/specs/2026-08-2
 
 **`add-journal` reads its template from the vault, on purpose.** It writes project entries into the `## Track Log` of project notes and, when creating a note, reads `Domaines/Outils/Modèles Obsidian/Modèle Projet.md` live instead of restating it. Don't inline that template into the `SKILL.md`: the user edits it in Obsidian, and a copy would drift silently. Only the entry format (`### AAAA-MM-JJ` + bullets) is owned by the skill.
 
+**`analyse-contenu` → `zettelkasten` are coupled by an output contract, not by shared gabarits.** `analyse-contenu` never writes to the vault. It ends its chat output with 7 fixed sections: `Source`, `Thèse`, `Idées candidates`, `Faits solides`, `Points faibles`, `Non vérifiable`, `Avis proposé`. `zettelkasten` reads those sections and is the only skill that writes, so the two file gabarits live **only** in `skills/zettelkasten/references/`. Renaming or adding a section means editing both `SKILL.md` files. The gabarits (and the `id` / `title` = filename rules) were derived from real notes in `Connaissances/Prise de notes/`: check a live note before changing them. Rationale: `docs/superpowers/specs/2026-10-01-analyse-contenu-zettelkasten-design.md`.
+
 **Description optimization doesn't work for vault skills.** skill-creator's `run_loop.py` runs `claude -p` from this repo, where the vault is absent; the agent answers directly instead of opening the skill, so recall stays near zero whatever the description. For `add-journal` all 5 iterations tied — judge triggering in real sessions instead.
 
 ## Conventions

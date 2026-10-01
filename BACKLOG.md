@@ -10,13 +10,19 @@
 - [ ] Alléger `tests/run.sh` (~40 s) : le test ARG_MAX à 20 000 fichiers peut tenir en ~1 500 fichiers aux chemins très longs.
 - [ ] `--audit-installed` sur les plugins : proposer de sauter les `node_modules` (plus de 2 000 signalements sur `chrome-devtools-mcp`, du bruit pour l'essentiel).
 - [ ] Afficher la cause d'un échec de `npx skills add/remove` (sortie aujourd'hui jetée) ; corriger l'affichage des chemins contenant `:` dans le rapport d'audit.
+- [ ] `zettelkasten` : définir les liens horodatés pour `youtu.be/ID` (`?t=` et non `&t=`) et pour les podcasts ou les repères de type « section ».
+- [ ] `zettelkasten` : étendre l'inventaire aux sous-dossiers de `Prise de notes/` et aux tags non cités entre guillemets ; ignorer un `id` qui n'a pas 12 chiffres dans le calcul du plus grand `id`.
+- [ ] `analyse-contenu` : nommer l'exception « leçon tirée de l'analyse » dans la contrainte des trois registres.
 - [ ] Décider si le dépôt devient un plugin `jmm:` (namespace/préfixe des skills) ou reste sur le mécanisme de symlinks — arbitrage laissé ouvert le 2026-07-22.
 
 ## En cours
 - [ ] Éprouver `project-docs-sync` sur de vrais projets et affiner à l'usage (approche retenue plutôt que des evals formelles).
 - [ ] Éprouver `/add-journal` en session réelle, en particulier son déclenchement : l'optimisation de description par `run_loop.py` n'a rien pu départager. Reprendre la description à partir des formulations qui ne déclenchent pas.
 
+- [ ] Éprouver `/analyse-contenu` puis `/zettelkasten` en session réelle sur le vault : déclenchement, enchaînement par la proposition finale, fiches écrites. Les trois fumigations ont été jouées par des sous-agents dans une copie de `Prise de notes/`.
+
 ## Fait
+- [x] Créer les skills `analyse-contenu` et `zettelkasten` (gabarits en `references/`, spec et plan sous `docs/superpowers/`).
 - [x] `install.sh` : skills tierces déclarées (`THIRD_PARTY_SKILLS`) et audit de sécurité avant toute installation ou mise à jour de plugin ou de skill tierce (spec et plan sous `docs/superpowers/`).
 - [x] `install.sh --update-plugins` : mise à jour des plugins tiers déjà installés.
 - [x] Créer le skill `add-journal` et l'évaluer sur des copies du vault (3 cas, avec et sans skill).
