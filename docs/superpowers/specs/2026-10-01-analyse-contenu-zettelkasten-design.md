@@ -99,8 +99,8 @@ Chemin avec espaces : toujours cité en shell. Absent → s'arrêter et le dire 
 6. Afficher la liste des fichiers créés.
 
 **Règles d'écriture.**
-- `id` = `AAAAMMJJHHmm`, unique : la note de littérature prend l'heure courante, chaque fiche la minute suivante (incrément de 1 par fiche), en vérifiant qu'aucun fichier de `Prise de notes/` ne porte déjà cet `id`.
-- Nom de fichier = `title`, caractères interdits dans un nom de fichier (`/ \ : * ? " < > |`) remplacés par ` - ` ou supprimés ; le `title` du frontmatter garde la forme lisible.
+- `id` = `AAAAMMJJHHmm`, unique et croissant : premier `id` = max(heure courante, plus grand `id` existant dans `Prise de notes/` + 1) ; la note de littérature prend le premier, chaque fiche le suivant (+1 minute). Les `id` existants se suivent déjà minute par minute, d'où le max.
+- Nom de fichier = `title` + `.md`, à l'identique (convention des notes existantes) : le `title` lui-même n'emploie jamais `:` (remplacé par ` - `) ni `/ \ * ? " < > |` (supprimés).
 - Note de littérature : titre suffixé par le type — `(vidéo)`, `(article)`, `(livre)`, `(podcast)`.
 - Si un fichier du même nom existe : ne jamais écraser ; demander un autre titre.
 - Ne modifier **aucun** fichier existant, `_INDEX.md` compris.
