@@ -49,6 +49,7 @@ date_created: <AAAA-MM-JJ>
 ## Règles
 
 - **Ligne d'URL** en tête du corps : seulement si la source a une URL. Sinon, supprime la ligne.
+- **Lecture partielle** : si l'analyse indique « Lu jusqu'à … », reprends cette mention dans l'encadré, sous la thèse : `> *Lu jusqu'à <repère> sur <total>.*`
 - **Repères horodatés** : seulement s'ils figurent dans la transcription fournie. URL horodatée YouTube : `<url>&t=<secondes>s`. Page de livre : `p. <n>` sans lien. Jamais de repère reconstitué.
 - **Leçon tirée de l'analyse** (idée marquée « (leçon tirée de l'analyse) » par `/analyse-contenu`) : ligne sans repère, de la forme « Leçon tirée des faiblesses de la source → [[<fiche>]] ».
 - **Thèse et « Mon avis »** : le texte validé par l'utilisateur à l'étape 4, mot pour mot.

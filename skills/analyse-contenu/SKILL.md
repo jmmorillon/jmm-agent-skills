@@ -16,7 +16,7 @@ L'utilisateur fournit un lien, un titre ou un thème, et normalement le contenu.
 | Ce qui est fourni | Ce que tu fais |
 | --- | --- |
 | Contenu collé ou fichier | Tu l'analyses. Lis le fichier **en entier** (par tranches s'il est long). |
-| Lien vers une page web, sans contenu | Tu récupères le texte de la page, puis tu l'analyses. |
+| Lien vers une page web, sans contenu | Tu récupères le texte intégral de la page, mot pour mot (pas un résumé). Si l'outil ne rend qu'un résumé ou un texte coupé, dis-le en tête (« Lu jusqu'à… ») ou demande à l'utilisateur de coller le texte. |
 | Lien vidéo ou audio, sans transcription | Tu t'arrêtes et demandes la transcription (ou le texte). |
 | Page inaccessible, paywall, texte vide | Tu t'arrêtes, tu dis pourquoi, tu demandes le texte. |
 | Titre ou thème seul | Tu demandes le contenu. **Tu n'analyses jamais de mémoire.** |

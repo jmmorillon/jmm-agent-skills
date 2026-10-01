@@ -26,7 +26,9 @@ Tu n'écris **que des fichiers nouveaux** dans ce dossier. Tu ne modifies aucun 
 ## Modes d'entrée
 
 1. **Après une analyse.** La conversation contient une sortie de `/analyse-contenu` (sections Source, Thèse, Idées candidates, Faits solides, Points faibles, Non vérifiable, Avis proposé). Tu produis une note de littérature et ses fiches permanentes.
-2. **Idée dictée.** Pas d'analyse dans la conversation : l'utilisateur te donne une idée. Tu produis **une fiche seule**, sans note de littérature. Les étapes marquées *(analyse)* ci-dessous ne s'appliquent pas.
+2. **Idée dictée.** Pas d'analyse dans la conversation : l'utilisateur te donne une idée. Tu produis **une fiche par idée dictée**, sans note de littérature. Les étapes marquées *(analyse)* ci-dessous ne s'appliquent pas.
+
+Si la conversation contient une analyse mais que l'utilisateur dicte une idée sans rapport avec elle, c'est le mode idée dictée ; dans le doute, demande.
 
 Si l'utilisateur te donne un contenu brut à conserver sans analyse, propose d'abord `/analyse-contenu` : tu ne juges pas un contenu, tu écris ce qui a été jugé.
 
@@ -53,7 +55,7 @@ Dans cet ordre, sans sauter d'étape :
    Déjà couvertes — liées depuis la note de littérature, pas de fiche nouvelle :
    - <idée> → [[<fiche existante>]]
    ```
-   Puis demande : « Je crée les fiches 1 à N ? Tu peux en renommer, en rejeter, ou me faire créer une idée couverte. » Pour une idée dictée, présente la fiche seule et demande : « Je la crée avec ce titre ? »
+   Puis demande : « Je crée les fiches 1 à N ? Tu peux en renommer, en rejeter, ou me faire créer une idée couverte. » Pour une idée dictée, présente la fiche et demande : « Je la crée avec ce titre ? » **Si l'idée dictée déjà couverte** par une fiche existante, dis-le d'abord (« [[…]] dit déjà cela ») et demande : ne rien créer, ou créer une fiche de nuance liée à l'existante ?
 
    **Si aucune fiche n'est à créer** *(analyse)*, dis-le et demande : « J'écris seulement la note de littérature, ou rien ? » **Attends la réponse.**
 4. **Encadré** *(analyse)*. Propose la Thèse et le « Mon avis » (à partir de la Thèse et de l'Avis proposé de l'analyse). L'utilisateur peut corriger l'une et l'autre. **Attends la validation.**
@@ -65,15 +67,17 @@ Dans cet ordre, sans sauter d'étape :
    Un `id` peut ainsi dépasser l'heure réelle : c'est voulu, il doit rester unique et croissant.
 6. **Rédige** en suivant exactement les gabarits `references/note-litterature.md` *(analyse)* et `references/fiche-permanente.md` (chemins relatifs à ce skill), et les règles ci-dessous.
 7. **Vérifie avant d'écrire** : pour chaque fichier, `test -e "$D/<title>.md"`. S'il existe, **n'écris pas** : demande un autre titre.
+
+   Exception : si la **note de littérature existe déjà** pour cette source (relance pour ajouter une idée), ne crée pas de seconde note : crée seulement les fiches, avec `source` vers la note existante, et préviens que sa liste « Idées extraites » ne sera pas mise à jour.
 8. **Écris** la note de littérature *(analyse)* puis les fiches.
-9. **Contrôle** : chaque `[[lien]]` écrit correspond à un fichier présent dans `$D` ; corrige sinon.
+9. **Contrôle** : chaque `[[lien]]` écrit, sauf le champ `source` d'une idée dictée (qui peut viser une note ailleurs dans le vault), correspond à un fichier présent dans `$D` ; corrige sinon.
 
 ## Règles d'écriture
 
-- **Titres** : jamais de `:` (remplace par ` - `), jamais `/ \ * ? " < > |`. Le nom de fichier est le titre + `.md`, à l'identique.
+- **Titres** : `:` et `/` deviennent ` - ` ; `\ * ? " < > # ^ [ ] |` sont supprimés (ils cassent un nom de fichier ou un `[[lien]]` Obsidian) ; les espaces multiples sont réduits à un seul. Ex. « C# : le guide » → « C - le guide ». Le nom de fichier est le titre + `.md`, à l'identique.
   - **Fiche** : titre = une affirmation citable seule. Pour une idée dictée qui est déjà une affirmation, garde la formulation de l'utilisateur.
   - **Note de littérature** : titre = celui de la source, suffixé par le type — `(vidéo)`, `(article)`, `(livre)`, `(podcast)`, `(page)`.
-- **YAML** : toute valeur qui contient `:`, `«`, `#`, ou commence par `[`, s'écrit entre guillemets doubles (un `"` intérieur devient `\"`). `source` est toujours entre guillemets.
+- **YAML** : toute valeur qui contient `:`, `«`, `#`, ou commence par `@`, `!`, `&`, `%`, `` ` ``, `{`, `[`, `'`, `-`, s'écrit entre guillemets doubles (un `"` intérieur devient `\"`). `source` est toujours entre guillemets.
 - **Fidélité** :
   - *Après une analyse* : tu ne reprends que ce que contient l'analyse validée. Pas de fait, d'exemple, de chiffre ou de repère ajouté. Une section « Aucun. » de l'analyse disparaît de la note.
   - *Idée dictée* : tu développes uniquement ce que l'utilisateur a dit ou validé. Toute phrase ajoutée (reformulation, règle pratique) figure dans la proposition de l'étape 3.
