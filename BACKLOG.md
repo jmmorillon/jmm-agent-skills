@@ -9,6 +9,8 @@
 - [ ] Éprouver le refus de bout en bout sur un vrai élément signalé (question `[o/N]`, mémoire dans `~/.agents/.audit-refused`, `--reconsider`) : aucune skill n'a été signalée pendant les essais, ce chemin n'est couvert que par les tests de `lib.sh`.
 - [ ] Alléger `tests/run.sh` (~40 s) : le test ARG_MAX à 20 000 fichiers peut tenir en ~1 500 fichiers aux chemins très longs.
 - [ ] `--audit-installed` sur les plugins : proposer de sauter les `node_modules` (plus de 2 000 signalements sur `chrome-devtools-mcp`, du bruit pour l'essentiel).
+- [ ] Exclure les automatisations CI de `vercel-labs/skills` (`-pr-labeling -triage`) : seule `find-skills` y est une vraie skill, et elle est refusée depuis le 2026-10-19. Relancer ensuite `./install.sh --update` pour réinstaller `software-factory`, retiré le 2026-11-09 parce que sa source avait changé pendant l'audit.
+- [ ] `sync_skill_source` : détecter deux `SKILL.md` du même nom dans une source (warn, les sauter tous les deux) au lieu de les auditer séparément, ce qui laisse passer la seconde après le refus de la première.
 - [ ] Afficher la cause d'un échec de `npx skills add/remove` (sortie aujourd'hui jetée) ; corriger l'affichage des chemins contenant `:` dans le rapport d'audit.
 - [ ] `zettelkasten` : définir les liens horodatés pour `youtu.be/ID` (`?t=` et non `&t=`) et pour les podcasts ou les repères de type « section ».
 - [ ] `zettelkasten` : étendre l'inventaire aux sous-dossiers de `Prise de notes/` et aux tags non cités entre guillemets ; ignorer un `id` qui n'a pas 12 chiffres dans le calcul du plus grand `id`.
@@ -22,6 +24,7 @@
 - [ ] Éprouver `/analyse-contenu` puis `/zettelkasten` en session réelle sur le vault : déclenchement, enchaînement par la proposition finale, fiches écrites. Les trois fumigations ont été jouées par des sous-agents dans une copie de `Prise de notes/`.
 
 ## Fait
+- [x] Ajouter la skill tierce `socratic-tutor` (source `janestreet/agent_skills`), auditée et installée.
 - [x] Créer les skills `analyse-contenu` et `zettelkasten` (gabarits en `references/`, spec et plan sous `docs/superpowers/`).
 - [x] `install.sh` : skills tierces déclarées (`THIRD_PARTY_SKILLS`) et audit de sécurité avant toute installation ou mise à jour de plugin ou de skill tierce (spec et plan sous `docs/superpowers/`).
 - [x] `install.sh --update-plugins` : mise à jour des plugins tiers déjà installés.

@@ -1,5 +1,13 @@
 # Devlog
 
+## 2026-11-09 — Skill tierce `socratic-tutor` (Jane Street)
+
+- **Nouvelle source `janestreet/agent_skills` dans `THIRD_PARTY_SKILLS`**, déclarée entière : le dépôt (MIT) ne contient qu'un skill, `socratic-tutor`, un tuteur socratique (diagnostic, carte de compétences 0-5, une question à la fois, révision espacée, évaluation finale). Pur Markdown, ni script ni URL ; audit statique et revue `claude -p` sans signalement. Il se déclenche sur des formulations anglaises (« quiz me », « teach me ») proches de celles de `check-knowledge`, mais n'enseigne pas à partir du vault.
+- **Premier `--update` réel avec signalements.** `socratic-tutor` est installé. Pour les autres sources :
+  - `software-factory` (mattpocock) a été retiré, parce que sa source a changé entre l'audit et l'installation.
+  - `npx skills add` a échoué pour `vercel-labs/skills`.
+- **`vercel-labs/skills` embarque désormais ses automatisations CI.** `pr-labeling` et `triage` apparaissent en double, sous `.automations/` et `.vc/automations/`. Les deux `triage` diffèrent : l'un a été jugé `suspect` (pas de `disable-model-invocation`, labels et commentaires publiés sans confirmation) puis refusé faute de terminal, l'autre a été jugé `ok`. Le pipeline ne détecte pas deux skills du même nom dans une source : la seconde peut passer après le refus de la première.
+
 ## 2026-10-01 — Analyse de contenu et Zettelkasten
 
 - **Deux nouveaux skills, `analyse-contenu` et `zettelkasten`.** Ils automatisent un flux déjà pratiqué à la main dans le vault : une note de littérature par contenu externe (vidéo, article, livre…), plus des fiches permanentes atomiques dans `Connaissances/Prise de notes/`. Le premier analyse le contenu et rend le résultat dans le chat : thèse, idées candidates, faits solides, points faibles, non vérifiable, avis proposé. Le second propose les fiches, les fait valider, puis les écrit. Partage des rôles : `analyse-contenu` n'écrit jamais dans le vault, `zettelkasten` ne juge jamais un contenu.
