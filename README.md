@@ -47,6 +47,7 @@ THIRD_PARTY_SKILLS=(
   "mattpocock/skills -implement-spec -pr -retro"   # toute la source, sauf ces trois
   "vercel-labs/skills"
   "cocoindex-io/cocoindex-code"
+  "janestreet/agent_skills"
 )
 ```
 

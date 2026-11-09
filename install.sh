@@ -40,6 +40,7 @@ THIRD_PARTY_SKILLS=(
   "mattpocock/skills -implement-spec -pr -retro"
   "vercel-labs/skills"
   "cocoindex-io/cocoindex-code"
+  "janestreet/agent_skills"
 )
 THIRD_PARTY_SKILL_AGENTS="claude-code github-copilot"
 # Version épinglée du CLI skills.sh lancé par npx : c'est lui qui écrit dans le
