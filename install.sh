@@ -38,7 +38,6 @@ THIRD_PARTY_PLUGINS=(
 # en double.
 THIRD_PARTY_SKILLS=(
   "mattpocock/skills -implement-spec -pr -retro"
-  "vercel-labs/skills"
   "cocoindex-io/cocoindex-code"
   "janestreet/agent_skills"
 )

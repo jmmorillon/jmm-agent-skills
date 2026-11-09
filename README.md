@@ -45,7 +45,6 @@ Les skills qui ne sont pas distribuées en plugin sont déclarées dans le table
 ```bash
 THIRD_PARTY_SKILLS=(
   "mattpocock/skills -implement-spec -pr -retro"   # toute la source, sauf ces trois
-  "vercel-labs/skills"
   "cocoindex-io/cocoindex-code"
   "janestreet/agent_skills"
 )
